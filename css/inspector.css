@@ -1,0 +1,48 @@
+#inspector {
+    position: absolute;
+    right: 420px;
+    top: 0;
+    width: 260px;
+    height: 800px;
+    background: #1e1e1e;
+    color: #ddd;
+    font-size: 12px;
+    padding: 10px;
+    overflow-y: auto;
+    border-left: 1px solid #333;
+}
+
+#inspector h3 {
+    margin: 6px 0 10px;
+    font-size: 13px;
+    color: #fff;
+}
+
+#inspector .group {
+    margin-bottom: 12px;
+}
+
+#inspector label {
+    display: block;
+    margin-bottom: 6px;
+    opacity: 0.8;
+}
+
+#inspector input[type="text"],
+#inspector input[type="number"] {
+    width: 100%;
+    box-sizing: border-box;
+    background: #111;
+    color: #eee;
+    border: 1px solid #444;
+    padding: 4px;
+}
+
+#inspector .row {
+    display: flex;
+    gap: 6px;
+}
+
+#inspector .row > div {
+    flex: 1;
+}

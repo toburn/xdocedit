@@ -11,8 +11,13 @@
     cursor: pointer;
 }
 
+.node:hover {
+    outline: 1px dashed rgba(0,0,0,0.3);
+}
+
 .node.selected {
     outline: 2px solid #007acc;
+    outline-offset: -1px;
 }
 
 #editor-viewport {
@@ -20,14 +25,14 @@
     width: 100%;
     height: 800px;
     border: 1px solid #aaa;
-    overflow: hidden; /* hide overflow for pan */
+    overflow: hidden;
     background: #f5f5f5;
     cursor: grab;
 }
 
 #editor {
-    position: absolute; /* we will transform this */
+    position: absolute;
     top: 0;
     left: 0;
-    transform-origin: 0 0; /* origin at top-left for scaling */
+    transform-origin: 0 0;
 }

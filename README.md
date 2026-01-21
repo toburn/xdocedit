@@ -2,7 +2,7 @@
 
 A small, browser-based visual editor that lets you **build and manipulate a JSON-based layout model** by directly interacting with rendered DOM nodes.
 
-The editor renders a JSON structure as absolutely positioned elements, allows selection and dragging, and keeps the JSON model in sync in real time.
+The editor renders a JSON structure as absolutely positioned elements, allows selection, dragging, zooming and panning, and keeps the JSON model in sync in real time.
 
 ---
 
@@ -11,7 +11,9 @@ The editor renders a JSON structure as absolutely positioned elements, allows se
 - Visual rendering of a JSON layout model
 - Click to select elements
 - Drag elements to reposition them
+- Zoom and pan the editor canvas
 - Add and remove child nodes
+- Inspector panel for editing selected element properties
 - Inline text editing for content-editable nodes
 - Live JSON output preview
 - Persist model in `localStorage`
@@ -25,17 +27,20 @@ The editor renders a JSON structure as absolutely positioned elements, allows se
 .  
 ├── index.html  
 ├── css/  
-│   ├── editor.css     # Editor canvas styling  
-│   ├── toolbar.css    # Toolbar layout  
-│   └── output.css     # JSON output panel styling  
+│   ├── editor.css       # Editor canvas & selection styling  
+│   ├── inspector.css    # Inspector panel styling  
+│   ├── toolbar.css      # Toolbar layout  
+│   └── output.css       # JSON output panel styling  
 └── js/  
-    ├── app.js         # App bootstrap, state, persistence  
-    ├── renderer.js    # Render JSON nodes into DOM  
-    ├── interaction.js # Selection and dragging logic  
-    ├── selection.js   # Selection state handling  
-    ├── model.js       # JSON model manipulation helpers  
-    ├── styles.js      # Apply JSON-defined styles to DOM  
-    └── toolbar.js     # UI toolbar actions  
+    ├── app.js           # App bootstrap, state, persistence  
+    ├── renderer.js      # Render JSON nodes into DOM  
+    ├── interaction.js   # Selection and dragging logic  
+    ├── selection.js     # Selection state handling  
+    ├── inspector.js     # Inspector UI & property editing  
+    ├── model.js         # JSON model manipulation helpers  
+    ├── styles.js        # Apply JSON-defined styles to DOM  
+    ├── toolbar.js       # UI toolbar actions  
+    └── viewport.js      # Zoom & pan behavior  
 ```
 
 ---
@@ -51,6 +56,7 @@ The editor operates on a single JSON object (`MODEL`) with this general shape:
   content: {
     id: "root",
     pt: { left: 10, top: 10, width: 100, height: 40 },
+    no: { position: "absolute" },
     content: "Hello"
   },
   classList: {
@@ -73,9 +79,10 @@ Key concepts:
 ### Rendering
 
 - Each node is rendered as a `<div class="node">`
-- All nodes are positioned absolutely
+- All nodes are positioned absolutely by default
 - Styles are derived from JSON via `styles.js`
 - Nested content produces nested DOM elements
+- Each DOM node keeps a reference to its JSON node via `el.__node`
 
 ---
 
@@ -83,8 +90,24 @@ Key concepts:
 
 - **Click** a node to select it
 - **Drag** a node to update its `pt.left` / `pt.top`
+- **Scroll** to zoom the canvas
+- **Space + drag** to pan the canvas
 - **Edit text** if `contenteditable` is enabled on the node
-- Selection state is reflected visually
+- Selection state is reflected visually with an editor-style outline
+
+---
+
+### Inspector Panel
+
+The Inspector panel displays and edits properties of the currently selected element.
+
+Currently editable:
+- `id`
+- Position: `left`, `top`
+- Size: `width`, `height`
+- Text content (for string-based nodes)
+
+All changes update the JSON model immediately and trigger a re-render.
 
 ---
 
