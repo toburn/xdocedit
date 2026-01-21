@@ -1,0 +1,11 @@
+#output {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 420px;
+    height: 800px;
+    background: #111;
+    color: #0f0;
+    font-size: 11px;
+    overflow: auto;
+}

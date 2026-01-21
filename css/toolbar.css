@@ -1,0 +1,12 @@
+#toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: #222;
+    color: #eee;
+    display: flex;
+    gap: 6px;
+    padding: 6px;
+}
