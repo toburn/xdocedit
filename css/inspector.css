@@ -18,13 +18,18 @@
     color: #fff;
 }
 
+#inspector h4 {
+    margin: 8px 0 6px;
+    font-size: 12px;
+    color: #ccc;
+}
+
 #inspector .group {
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 
 #inspector label {
     display: block;
-    margin-bottom: 6px;
     opacity: 0.8;
 }
 
@@ -38,11 +43,66 @@
     padding: 4px;
 }
 
-#inspector .row {
+/* ---- Property rows (pt + no) ---- */
+
+#inspector .prop-row {
     display: flex;
+    align-items: center;
     gap: 6px;
+    margin-bottom: 6px;
 }
 
-#inspector .row > div {
+#inspector .prop-row label {
     flex: 1;
+    margin: 0;
+}
+
+/* ---- Delete buttons ---- */
+
+#inspector .delete-btn {
+    background: #222;
+    color: #aaa;
+    border: 1px solid #333;
+    border-radius: 3px;
+    padding: 2px 6px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+}
+
+#inspector .delete-btn:hover {
+    opacity: 1;
+    background: #2a2a2a;
+    color: #f55;
+    border-color: #444;
+}
+
+/* ---- Add rows ---- */
+
+#inspector .add-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+#inspector .add-row input {
+    flex: 1;
+}
+
+#inspector .add-row button {
+    background: #333;
+    color: #ddd;
+    border: 1px solid #444;
+    padding: 4px 6px;
+    cursor: pointer;
+}
+
+#inspector .add-row button:hover {
+    background: #444;
+}
+
+/* ---- Subtle hover affordance ---- */
+
+#inspector .prop-row:hover {
+    background: rgba(255, 255, 255, 0.03);
 }
