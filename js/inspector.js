@@ -1,12 +1,57 @@
-import { onSelectionChange } from './selection.js';
+import { onSelectionChange, setSelection } from './selection.js';
 
 const inspector = document.getElementById('inspector');
+
+let currentEl = null;
 
 function clearInspector() {
     inspector.innerHTML = '<em style="opacity:.6">No selection</em>';
 }
 
+function findParent(el) {
+    let p = el?.parentElement;
+    while (p && !p.__node) p = p.parentElement;
+    return p;
+}
+
+function findSibling(el, dir) {
+    let sib = dir === 'next'
+        ? el?.nextElementSibling
+        : el?.previousElementSibling;
+
+    while (sib && !sib.__node) {
+        sib = dir === 'next'
+            ? sib.nextElementSibling
+            : sib.previousElementSibling;
+    }
+    return sib;
+}
+
+function findFirstChild(el) {
+    return [...el.children].find(c => c.__node);
+}
+
 function renderInspector(el, onUpdate) {
+    currentEl = el;
+
+    function updateNavButtons() {
+        const parent = findParent(currentEl);
+        const child = findFirstChild(currentEl);
+        const prev = findSibling(currentEl, 'prev');
+        const next = findSibling(currentEl, 'next');
+
+        const btnParent = inspector.querySelector('#nav-parent');
+        const btnChild  = inspector.querySelector('#nav-child');
+        const btnPrev   = inspector.querySelector('#nav-prev');
+        const btnNext   = inspector.querySelector('#nav-next');
+
+        btnParent.disabled = !parent;
+        btnChild.disabled  = !child;
+        btnPrev.disabled   = !prev;
+        btnNext.disabled   = !next;
+    }
+
+
     if (!el || !el.__node) {
         clearInspector();
         return;
@@ -19,6 +64,14 @@ function renderInspector(el, onUpdate) {
     inspector.innerHTML = `
         <h3>Inspector</h3>
 
+        <!-- Traversal -->
+        <div class="group nav-group">
+            <button id="nav-parent" title="Parent">⤴</button>
+            <button id="nav-child" title="First child">⤵</button>
+            <button id="nav-prev" title="Previous sibling">←</button>
+            <button id="nav-next" title="Next sibling">→</button>
+        </div>
+
         <div class="group">
             <label>
                 ID
@@ -30,7 +83,7 @@ function renderInspector(el, onUpdate) {
             <h4>Position (pt)</h4>
             <div class="properties">
                 ${Object.entries(node.pt).map(([prop, value]) => `
-                    <div class="prop-row pt-row">
+                    <div class="prop-row">
                         <label>${prop}
                             <input
                                 type="number"
@@ -54,7 +107,7 @@ function renderInspector(el, onUpdate) {
             <h4>Other Properties (no)</h4>
             <div class="properties">
                 ${Object.entries(node.no).map(([prop, value]) => `
-                    <div class="prop-row no-row">
+                    <div class="prop-row">
                         <label>${prop}
                             <input
                                 type="text"
@@ -84,66 +137,81 @@ function renderInspector(el, onUpdate) {
         ` : ''}
     `;
 
-    // ---- Wiring ----
+    // ---- Traversal wiring ----
 
-    // ID
+    inspector.querySelector('#nav-parent')?.addEventListener('click', () => {
+        const p = findParent(currentEl);
+        if (p) setSelection(p);
+    });
+
+    inspector.querySelector('#nav-child')?.addEventListener('click', () => {
+        const c = findFirstChild(currentEl);
+        if (c) setSelection(c);
+    });
+
+    inspector.querySelector('#nav-prev')?.addEventListener('click', () => {
+        const s = findSibling(currentEl, 'prev');
+        if (s) setSelection(s);
+    });
+
+    inspector.querySelector('#nav-next')?.addEventListener('click', () => {
+        const s = findSibling(currentEl, 'next');
+        if (s) setSelection(s);
+    });
+
+
+    // ---- Data wiring ----
+
     inspector.querySelector('#node-id')?.addEventListener('input', e => {
         node.id = e.target.value;
         onUpdate?.(node);
     });
 
-    // Property value changes (pt + no)
     inspector.querySelectorAll('.prop-row input').forEach(input => {
         input.addEventListener('input', e => {
             const section = e.target.dataset.section;
             const prop = e.target.dataset.prop;
-            const value = section === 'pt'
+            node[section][prop] = section === 'pt'
                 ? Number(e.target.value)
                 : e.target.value;
-
-            node[section][prop] = value;
             onUpdate?.(node);
         });
     });
 
-    // Delete buttons (pt + no)
     inspector.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-            const section = btn.dataset.section;
-            const prop = btn.dataset.prop;
+        btn.addEventListener('click', () => {
+            const { section, prop } = btn.dataset;
             delete node[section][prop];
             renderInspector(el, onUpdate);
             onUpdate?.(node);
         });
     });
 
-    // Add pt
     inspector.querySelector('#add-pt')?.addEventListener('click', () => {
-        const name = inspector.querySelector('#new-pt-name').value.trim();
-        const value = Number(inspector.querySelector('#new-pt-value').value);
-        if (!name) return;
-
-        node.pt[name] = value;
+        const n = inspector.querySelector('#new-pt-name').value.trim();
+        const v = Number(inspector.querySelector('#new-pt-value').value);
+        if (!n) return;
+        node.pt[n] = v;
         renderInspector(el, onUpdate);
         onUpdate?.(node);
     });
 
-    // Add no
     inspector.querySelector('#add-no')?.addEventListener('click', () => {
-        const name = inspector.querySelector('#new-no-name').value.trim();
-        const value = inspector.querySelector('#new-no-value').value;
-        if (!name) return;
-
-        node.no[name] = value;
+        const n = inspector.querySelector('#new-no-name').value.trim();
+        const v = inspector.querySelector('#new-no-value').value;
+        if (!n) return;
+        node.no[n] = v;
         renderInspector(el, onUpdate);
         onUpdate?.(node);
     });
 
-    // Text
     inspector.querySelector('#node-text')?.addEventListener('input', e => {
         node.content = e.target.value;
         onUpdate?.(node);
     });
+
+    updateNavButtons();
+
 }
 
 export function initInspector(onUpdate, onSelect) {

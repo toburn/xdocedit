@@ -36,14 +36,35 @@
 #inspector input[type="text"],
 #inspector input[type="number"] {
     width: 100%;
-    box-sizing: border-box;
     background: #111;
     color: #eee;
     border: 1px solid #444;
     padding: 4px;
+    box-sizing: border-box;
 }
 
-/* ---- Property rows (pt + no) ---- */
+/* ---- Navigation ---- */
+
+#inspector .nav-group {
+    display: flex;
+    gap: 6px;
+}
+
+#inspector .nav-group button {
+    flex: 1;
+    background: #222;
+    color: #bbb;
+    border: 1px solid #333;
+    padding: 4px 0;
+    cursor: pointer;
+}
+
+#inspector .nav-group button:hover {
+    background: #2a2a2a;
+    color: #fff;
+}
+
+/* ---- Property rows ---- */
 
 #inspector .prop-row {
     display: flex;
@@ -54,7 +75,6 @@
 
 #inspector .prop-row label {
     flex: 1;
-    margin: 0;
 }
 
 /* ---- Delete buttons ---- */
@@ -66,7 +86,6 @@
     border-radius: 3px;
     padding: 2px 6px;
     cursor: pointer;
-    line-height: 1;
     opacity: 0.7;
 }
 
@@ -74,7 +93,6 @@
     opacity: 1;
     background: #2a2a2a;
     color: #f55;
-    border-color: #444;
 }
 
 /* ---- Add rows ---- */
@@ -101,8 +119,16 @@
     background: #444;
 }
 
-/* ---- Subtle hover affordance ---- */
+/* ---- Hover affordance ---- */
 
 #inspector .prop-row:hover {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255,255,255,0.03);
+}
+
+#inspector .nav-group button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #1a1a1a;
+    color: #555;
+    border-color: #222;
 }
