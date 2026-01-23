@@ -1,9 +1,9 @@
 #editor {
     position: relative;
-    width: 600px;
-    height: 800px;
+    width: 595pt;
+    height: 842pt;
     border: 1px solid #aaa;
-    background: #f5f5f5;
+    background: #ffffff;
 }
 
 .node {

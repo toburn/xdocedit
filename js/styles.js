@@ -15,7 +15,7 @@ export function styleFrom(obj = {}) {
             const [r, g, b, a] = v;
             s[cssKey] = `rgba(${r},${g},${b},${a / 255})`;
         } else if (typeof v === 'number') {
-            s[cssKey] = v + 'px';
+            s[cssKey] = v + 'pt';
         } else {
             s[cssKey] = v;
         }
