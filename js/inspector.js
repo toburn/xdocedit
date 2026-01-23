@@ -1,6 +1,5 @@
 // inspector.js
 import { onSelectionChange } from './selection.js';
-import { refresh } from './app.js';
 
 const inspector = document.getElementById('inspector');
 
@@ -8,16 +7,7 @@ function clearInspector() {
     inspector.innerHTML = '<em style="opacity:.6">No selection</em>';
 }
 
-function numberInput(label, value, onChange) {
-    return `
-    <label>
-        ${label}
-        <input type="number" value="${value ?? ''}" data-key="${label}">
-    </label>
-  `;
-}
-
-function renderInspector(el) {
+function renderInspector(el, onUpdate) {
     if (!el || !el.__node) {
         clearInspector();
         return;
@@ -72,13 +62,12 @@ function renderInspector(el) {
         </label>
     </div>
     ` : ''}
-  `;
+    `;
 
-    // --- Wiring ---
-
+    // --- Wiring: call onUpdate whenever a value changes ---
     inspector.querySelector('#node-id')?.addEventListener('input', e => {
         node.id = e.target.value;
-        refresh();
+        onUpdate?.(node);
     });
 
     inspector.querySelectorAll('input[data-prop]').forEach(input => {
@@ -86,17 +75,28 @@ function renderInspector(el) {
             const prop = e.target.dataset.prop;
             const value = Number(e.target.value);
             node.pt[prop] = value;
-            refresh();
+            onUpdate?.(node);
         });
     });
 
     inspector.querySelector('#node-text')?.addEventListener('input', e => {
         node.content = e.target.value;
-        refresh();
+        onUpdate?.(node);
     });
 }
 
-export function initInspector() {
+/**
+ * Initialize inspector
+ * @param {Function} onUpdate - called when any property changes
+ * @param {Function} onSelect - called when selection changes
+ */
+export function initInspector(onUpdate, onSelect) {
     clearInspector();
-    onSelectionChange(renderInspector);
+
+    onSelectionChange(el => {
+        renderInspector(el, onUpdate);
+        if (onSelect && el?.__node) {
+            onSelect(el.__node);
+        }
+    });
 }

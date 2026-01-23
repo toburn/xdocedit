@@ -11,12 +11,24 @@ const output = document.getElementById('output');
 const LOCAL_KEY = 'jsonDomModel';
 
 // --- Render & persist ---
+// app.js
 export function refresh() {
     editor.innerHTML = '';
     render(MODEL.content || {}, editor);
-    output.textContent = JSON.stringify(MODEL, null, 2);
+
+    // Highlight JSON nodes with spans
+    const jsonText = JSON.stringify(MODEL, null, 2);
+
+    // Wrap all "id": "someId" occurrences with span
+    const jsonWithSpans = jsonText.replace(
+        /"id":\s*"([^"]+)"/g,
+        (_, id) => `"id": "<span class='json-node' data-id='${id}'>${id}</span>"`
+    );
+
+    output.innerHTML = jsonWithSpans;
     localStorage.setItem(LOCAL_KEY, JSON.stringify(MODEL));
 }
+
 
 // --- Load model from localStorage ---
 function loadFromStorage() {
@@ -68,10 +80,27 @@ function clearModel() {
     refresh();
 }
 
+// --- Inspector ---
+function scrollJsonToSelection(node) {
+    if (!node?.id) return;
+
+    const el = document.querySelector(`#output .json-node[data-id="${node.id}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+
+
 // --- Initialize app ---
 window.addEventListener('DOMContentLoaded', () => {
     initToolbar();
-    initInspector();       // <--- inspector added here
+
+    initInspector(
+        () => {
+            refresh(); // re-render editor and JSON output
+        },
+        scrollJsonToSelection
+    );
+
     loadFromStorage();
     refresh();
 
