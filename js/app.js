@@ -114,11 +114,32 @@ window.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('paste', handlePaste);
 
     // Clear button
-    const btn = document.createElement('button');
-    btn.textContent = 'Clear';
-    btn.style.position = 'fixed';
-    btn.style.top = '10px';
-    btn.style.right = '10px';
-    btn.onclick = clearModel;
-    document.body.appendChild(btn);
+    const btnClear = document.createElement('button');
+    btnClear.textContent = 'Clear';
+    btnClear.style.position = 'fixed';
+    btnClear.style.top = '10px';
+    btnClear.style.right = '10px';
+    btnClear.onclick = () => {
+        MODEL = {};
+        localStorage.removeItem(LOCAL_KEY);
+        refresh();
+    };
+    document.body.appendChild(btnClear);
+
+    // Copy JSON button
+    const btnCopy = document.createElement('button');
+    btnCopy.textContent = 'Copy JSON';
+    btnCopy.style.position = 'fixed';
+    btnCopy.style.top = '10px';
+    btnCopy.style.right = '100px'; // space to the left of Clear button
+    btnCopy.onclick = async () => {
+        try {
+            await navigator.clipboard.writeText(JSON.stringify(MODEL, null, 2));
+            btnCopy.textContent = 'Copied!';
+            setTimeout(() => btnCopy.textContent = 'Copy JSON', 1000);
+        } catch (err) {
+            alert('Failed to copy JSON: ' + err);
+        }
+    };
+    document.body.appendChild(btnCopy);
 });
