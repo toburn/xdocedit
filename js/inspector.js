@@ -27,6 +27,26 @@ function findSibling(el, dir) {
     return sib;
 }
 
+function getPropertyValue(section, value) {
+    if (section === 'pt')
+        return Number(value);
+    if (section === 'no') {
+        return extractArray(value) || value;
+    }
+    return value
+}
+
+function extractArray(value) {
+    if (typeof value !== "string") return null;
+
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
 function findFirstChild(el) {
     return [...el.children].find(c => c.__node);
 }
@@ -171,9 +191,7 @@ function renderInspector(el, onUpdate) {
         input.addEventListener('input', e => {
             const section = e.target.dataset.section;
             const prop = e.target.dataset.prop;
-            node[section][prop] = section === 'pt'
-                ? Number(e.target.value)
-                : e.target.value;
+            node[section][prop] = getPropertyValue(section, e.target.value);
             onUpdate?.(node);
         });
     });

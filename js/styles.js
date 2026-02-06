@@ -1,7 +1,13 @@
+import { cmyk2hhex } from './cmyk.js';
+
 // styles.js
 export function styleFrom(obj = {}) {
     const s = {};
     for (const k in obj) {
+        console.log(`Style from ${k}: ${obj[k]}`)
+        if (k === 'background-color' ) {
+            console.log("Styling background-color")
+        };
         if (!obj.hasOwnProperty(k)) continue;
 
         // ignore properties starting with '_'
@@ -11,9 +17,7 @@ export function styleFrom(obj = {}) {
         const v = obj[k];
 
         if (Array.isArray(v) && v.length === 4) {
-            // Convert [r,g,b,a] to rgba(r,g,b,a)
-            const [r, g, b, a] = v;
-            s[cssKey] = `rgba(${r},${g},${b},${a / 255})`;
+            s[cssKey] = cmyk2hhex(v)
         } else if (typeof v === 'number') {
             s[cssKey] = v + 'pt';
         } else {
