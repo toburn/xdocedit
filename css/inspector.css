@@ -51,17 +51,45 @@
 }
 
 #inspector .nav-group button {
-    flex: 1;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #333;
+    border-radius: 4px;
     background: #222;
     color: #bbb;
-    border: 1px solid #333;
-    padding: 4px 0;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    transition: background 0.15s, color 0.15s;
 }
 
+/* Hover & active */
 #inspector .nav-group button:hover {
     background: #2a2a2a;
     color: #fff;
+}
+
+#inspector .nav-group button:active {
+    background: #3a3a3a;
+}
+
+/* Disabled state */
+#inspector .nav-group button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #1a1a1a;
+    color: #555;
+    border-color: #222;
+}
+
+/* Optional: hide any text inside nav buttons (symbols only) */
+#inspector .nav-group button span {
+    display: none;
 }
 
 /* ---- Property rows ---- */
@@ -78,41 +106,45 @@
 }
 
 /* ---- Delete buttons ---- */
-
 #inspector .delete-btn {
-    background: #222;
-    color: #aaa;
+    width: 24px;
+    height: 24px;
+    padding: 0;
     border: 1px solid #333;
-    border-radius: 3px;
-    padding: 2px 6px;
+    border-radius: 4px;
+    background: #222;
+    color: #f55; /* red for delete */
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    opacity: 0.7;
+    opacity: 0.8;
+    transition: background 0.15s, opacity 0.15s;
 }
 
 #inspector .delete-btn:hover {
-    opacity: 1;
     background: #2a2a2a;
-    color: #f55;
+    opacity: 1;
 }
 
-/* ---- Add rows ---- */
-
-#inspector .add-row {
-    display: flex;
-    gap: 6px;
-    margin-top: 6px;
-}
-
-#inspector .add-row input {
-    flex: 1;
-}
-
+/* ---- Add buttons ---- */
 #inspector .add-row button {
-    background: #333;
-    color: #ddd;
+    width: 28px;
+    height: 28px;
+    padding: 0;
     border: 1px solid #444;
-    padding: 4px 6px;
+    border-radius: 4px;
+    background: #333;
+    color: #0f0; /* greenish for add */
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    transition: background 0.15s;
 }
 
 #inspector .add-row button:hover {

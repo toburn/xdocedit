@@ -1,0 +1,62 @@
+/* ---- Fixed top-right buttons (Copy / Clear) ---- */
+.fixed-button {
+    position: fixed;
+    top: 10px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #333;
+    color: #eee;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    z-index: 1000;
+}
+
+.fixed-button:hover {
+    background: #444;
+}
+
+/* Optional: differentiate Copy vs Clear */
+.fixed-button.copy {
+    color: #0f0; /* greenish for Copy JSON */
+    position: fixed;
+    top: 10px;
+    right: 40px;
+}
+
+.fixed-button.clear {
+    color: #f55; /* reddish for Clear */
+    position: fixed;
+    top: 10px;
+    right: 10px;
+}
+
+/* Tooltip text */
+.fixed-button[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 110%;       /* above the button */
+    left: 50%;
+    transform: translateX(-50%);
+    background: #222;
+    color: #eee;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+}
+
+/* Show tooltip on hover */
+.fixed-button[data-tooltip]:hover::after {
+    opacity: 1;
+}

@@ -115,10 +115,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Clear button
     const btnClear = document.createElement('button');
-    btnClear.textContent = 'Clear';
-    btnClear.style.position = 'fixed';
-    btnClear.style.top = '10px';
-    btnClear.style.right = '10px';
+    btnClear.dataset.tooltip = "Clear"
     btnClear.onclick = () => {
         MODEL = {};
         localStorage.removeItem(LOCAL_KEY);
@@ -128,10 +125,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Copy JSON button
     const btnCopy = document.createElement('button');
-    btnCopy.textContent = 'Copy JSON';
-    btnCopy.style.position = 'fixed';
-    btnCopy.style.top = '10px';
-    btnCopy.style.right = '100px'; // space to the left of Clear button
+    btnCopy.dataset.tooltip = "Copy to clipboard"
     btnCopy.onclick = async () => {
         try {
             await navigator.clipboard.writeText(JSON.stringify(MODEL, null, 2));
@@ -141,5 +135,12 @@ window.addEventListener('DOMContentLoaded', () => {
             alert('Failed to copy JSON: ' + err);
         }
     };
+
+    btnClear.className = 'fixed-button clear';
+    btnClear.textContent = '✖'; // Clear symbol
+
+    btnCopy.className = 'fixed-button copy';
+    btnCopy.textContent = '⎘'; // Clipboard symbol
+
     document.body.appendChild(btnCopy);
 });

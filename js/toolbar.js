@@ -13,8 +13,8 @@ export function initToolbar() {
 
     // Toolbar HTML
     bar.innerHTML = `
-    <button id="addChild">+ Child</button>
-    <button id="removeNode">🗑 Remove</button>
+    <button id="addChild" data-tooltip="Add child">+</button>
+    <button id="removeNode" data-tooltip="Remove node">🗑</button>
     <span id="status" style="margin-left:10px;opacity:.7"></span>
   `;
 

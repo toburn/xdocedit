@@ -119,7 +119,7 @@ function renderInspector(el, onUpdate) {
             <div class="add-row">
                 <input type="text" id="new-pt-name" placeholder="Property name">
                 <input type="number" id="new-pt-value" placeholder="Value">
-                <button id="add-pt">Add</button>
+                <button id="add-pt">+</button>
             </div>
         </div>
 
@@ -143,7 +143,7 @@ function renderInspector(el, onUpdate) {
             <div class="add-row">
                 <input type="text" id="new-no-name" placeholder="Property name">
                 <input type="text" id="new-no-value" placeholder="Value">
-                <button id="add-no">Add</button>
+                <button id="add-no">+</button>
             </div>
         </div>
 
