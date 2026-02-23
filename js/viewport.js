@@ -1,9 +1,13 @@
 // viewport.js
+
+export let currentScale = 1;
+
 export function makeViewportZoomable(editorId, viewportId) {
     const editor = document.getElementById(editorId);
     const viewport = document.getElementById(viewportId);
 
     let scale = 1;
+    currentScale = scale;
     let offsetX = 0;
     let offsetY = 0;
 
@@ -68,6 +72,7 @@ export function makeViewportZoomable(editorId, viewportId) {
         offsetY -= (my - offsetY) * (newScale / scale - 1);
 
         scale = newScale;
+        currentScale = scale;
         updateTransform();
     });
 

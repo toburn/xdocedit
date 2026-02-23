@@ -70,7 +70,7 @@ Key concepts:
     - a string (text)
     - a single child node
     - an array of child nodes
-- `pt` = positional / dimensional styles (numbers → px)
+- `pt` = positional / dimensional styles (numbers → pt)
 - `no` = non-positional styles
 - `cls` = reference to shared styles in `MODEL.classList`
 

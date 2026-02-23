@@ -1,5 +1,6 @@
 import { setSelection } from './selection.js';
 import { refresh } from './app.js';
+import { currentScale } from './viewport.js';
 
 /**
  * Enable interaction (selection + drag) for a DOM element
@@ -38,17 +39,28 @@ function enableDrag(el) {
         startY = e.clientY;
 
         function onMouseMove(ev) {
-            const dx = ev.clientX - startX;
-            const dy = ev.clientY - startY;
+            const pxToPt = 72 / 96;
+            const ptToPx = 96 / 72;
 
-            pt.left = (pt.left || 0) + dx;
-            pt.top = (pt.top || 0) + dy;
+            // compensate for zoom scale
+            const dxScreen = ev.clientX - startX;
+            const dyScreen = ev.clientY - startY;
+
+            const dxLayoutPx = dxScreen / currentScale;
+            const dyLayoutPx = dyScreen / currentScale;
+
+            const dxPt = dxLayoutPx * pxToPt;
+            const dyPt = dyLayoutPx * pxToPt;
+
+            pt.left = (pt.left || 0) + dxPt;
+            pt.top  = (pt.top  || 0) + dyPt;
 
             startX = ev.clientX;
             startY = ev.clientY;
 
-            el.style.left = pt.left + 'px';
-            el.style.top = pt.top + 'px';
+            // render in layout px (not scaled px)
+            el.style.left = (pt.left * ptToPx) + 'px';
+            el.style.top  = (pt.top  * ptToPx) + 'px';
         }
 
         function onMouseUp() {
