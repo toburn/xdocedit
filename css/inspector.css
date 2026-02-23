@@ -9,7 +9,7 @@
     padding: 10px;
     overflow-y: auto;
     border-left: 1px solid #333;
-    height: 100vh;       /* full window height */
+    height: calc(100% - 80px);       /* full window height */
     right: 420px;        /* default: left of output window */
     transition: right 0.2s;  /* smooth slide when output toggled */
     z-index: 10;

@@ -8,7 +8,9 @@
     color: #0f0;
     font-size: 11px;
     overflow: auto;
-    height: 100vh;       /* full window height */
+    height: calc(100% - 80px);       /* full window height  - margins and toolbar*/
     transition: width 0.2s, opacity 0.2s;
     z-index: 5;
+    margin: 0;
+    padding: 10px;
 }
