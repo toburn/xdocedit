@@ -60,3 +60,18 @@
 .fixed-button[data-tooltip]:hover::after {
     opacity: 1;
 }
+
+/* Side panel containing inspector + output */
+#side-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: calc(100% - 48px); /* full height minus toolbar */
+    display: flex;              /* inspector + output side by side */
+    transition: right 0.2s;
+}
+
+/* When side panel is hidden */
+body.side-panel-hidden #side-panel {
+    display: none;
+}

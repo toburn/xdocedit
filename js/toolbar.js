@@ -16,7 +16,8 @@ export function initToolbar() {
     <button id="addChild" data-tooltip="Add child">+</button>
     <button id="removeNode" data-tooltip="Remove node">🗑</button>
     <span id="status" style="margin-left:10px;opacity:.7"></span>
-  `;
+    <button id="togglePanel" data-tooltip="Toggle Inspector & JSON Output">🛈</button>
+`;
 
     const status = bar.querySelector('#status');
 
@@ -58,6 +59,11 @@ export function initToolbar() {
 
         refresh();
     };
+
+    const togglePanelBtn = bar.querySelector('#togglePanel');
+    togglePanelBtn.addEventListener('click', () => {
+        document.body.classList.toggle('side-panel-hidden');
+    });
 
     // Live status update
     setInterval(() => {

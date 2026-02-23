@@ -79,3 +79,12 @@
 #toolbar button[data-tooltip]:hover::after {
     opacity: 1;
 }
+
+#toolbar #togglePanel {
+    margin-left: auto;  /* pushes this button to the far right */
+}
+
+#toolbar #togglePanel[data-tooltip]::after {
+    right: 0;       /* align tooltip to the right edge of the button */
+    left: auto;     /* unset the left alignment */
+}
