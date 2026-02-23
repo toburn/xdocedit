@@ -82,7 +82,10 @@ function renderInspector(el, onUpdate) {
     node.no ||= {};
 
     inspector.innerHTML = `
-        <h3>Inspector</h3>
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <h3>Inspector</h3>
+            <button id="toggle-output" title="Show/Hide JSON" style="font-size:12px;padding:2px 6px;">⇅</button>
+        </div>
 
         <!-- Traversal -->
         <div class="group nav-group">
@@ -156,6 +159,24 @@ function renderInspector(el, onUpdate) {
         </div>
         ` : ''}
     `;
+
+    // ---- Toggle json output wiring ----
+    const btnToggle = inspector.querySelector('#toggle-output');
+    btnToggle.addEventListener('click', () => {
+        const output = document.getElementById('output');
+        const inspectorEl = document.getElementById('inspector');
+        if (!output || !inspectorEl) return;
+
+        const hidden = output.style.display === 'none';
+
+        if (hidden) {
+            output.style.display = 'block';
+            inspectorEl.style.right = output.offsetWidth + 'px'; // position inspector left of output
+        } else {
+            output.style.display = 'none';
+            inspectorEl.style.right = '0px'; // inspector takes the place of output
+        }
+    });
 
     // ---- Traversal wiring ----
 

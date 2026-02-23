@@ -1,15 +1,18 @@
+/* inspector.css */
 #inspector {
-    position: absolute;
-    right: 420px;
+    position: fixed;
     top: 0;
     width: 260px;
-    height: 800px;
     background: #1e1e1e;
     color: #ddd;
     font-size: 12px;
     padding: 10px;
     overflow-y: auto;
     border-left: 1px solid #333;
+    height: 100vh;       /* full window height */
+    right: 420px;        /* default: left of output window */
+    transition: right 0.2s;  /* smooth slide when output toggled */
+    z-index: 10;
 }
 
 #inspector h3 {
@@ -163,4 +166,15 @@
     background: #1a1a1a;
     color: #555;
     border-color: #222;
+}
+#inspector #toggle-output {
+    background: #333;
+    color: #ddd;
+    border: 1px solid #444;
+    border-radius: 3px;
+    cursor: pointer;
+}
+#inspector #toggle-output:hover {
+    background: #444;
+    color: #fff;
 }

@@ -113,6 +113,10 @@ window.addEventListener('DOMContentLoaded', () => {
     // Paste
     document.addEventListener('paste', handlePaste);
 
+    const outputToolbar = document.createElement('div');
+    outputToolbar.id = "output-toolbar";
+    output.appendChild(outputToolbar)
+
     // Clear button
     const btnClear = document.createElement('button');
     btnClear.dataset.tooltip = "Clear"
@@ -121,7 +125,9 @@ window.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem(LOCAL_KEY);
         refresh();
     };
-    document.body.appendChild(btnClear);
+    outputToolbar.appendChild(btnClear);
+
+
 
     // Copy JSON button
     const btnCopy = document.createElement('button');
@@ -142,5 +148,5 @@ window.addEventListener('DOMContentLoaded', () => {
     btnCopy.className = 'fixed-button copy';
     btnCopy.textContent = '⎘'; // Clipboard symbol
 
-    document.body.appendChild(btnCopy);
+    outputToolbar.appendChild(btnCopy);
 });
