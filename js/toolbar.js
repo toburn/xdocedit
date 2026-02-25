@@ -40,6 +40,80 @@ function distributeChildrenEdgeToEdge(parentNode) {
     });
 }
 
+// ---- Distribute children vertically ----
+function distributeChildrenVertically(parentNode) {
+    const children = parentNode.content;
+    if (!Array.isArray(children) || children.length < 2) return;
+
+    // Sort by top
+    children.sort((a, b) => (a.pt.top || 0) - (b.pt.top || 0));
+
+    const topMost = children[0].pt.top || 0;
+    const bottomMost =
+        (children[children.length - 1].pt.top || 0) +
+        (children[children.length - 1].pt.height || 0);
+
+    const totalHeight = bottomMost - topMost;
+
+    const totalChildrenHeight = children.reduce(
+        (sum, c) => sum + (c.pt.height || 0),
+        0
+    );
+
+    const spacing = (totalHeight - totalChildrenHeight) / (children.length - 1);
+
+    let currentY = topMost;
+
+    children.forEach(c => {
+        c.pt.top = currentY;
+        currentY += (c.pt.height || 0) + spacing;
+    });
+}
+
+
+// ---- Distribute children vertically edge to edge ----
+function distributeChildrenVerticallyEdgeToEdge(parentNode) {
+    const children = parentNode.content;
+    if (!Array.isArray(children) || children.length < 2) return;
+
+    // Sort by top
+    children.sort((a, b) => (a.pt.top || 0) - (b.pt.top || 0));
+
+    const parentHeight = parentNode.pt?.height || 0;
+
+    const topChild = children[0];
+    const bottomChild = children[children.length - 1];
+
+    // Snap first and last to edges
+    topChild.pt.top = 0;
+    bottomChild.pt.top = parentHeight - (bottomChild.pt.height || 0);
+
+    const remainingChildren = children.slice(1, -1);
+
+    const totalRemainingHeight = remainingChildren.reduce(
+        (sum, c) => sum + (c.pt.height || 0),
+        0
+    );
+
+    const spaceBetween =
+        bottomChild.pt.top -
+        (topChild.pt.top + (topChild.pt.height || 0)) -
+        totalRemainingHeight;
+
+    const spacing =
+        remainingChildren.length > 0
+            ? spaceBetween / (remainingChildren.length + 1)
+            : 0;
+
+    let currentY =
+        topChild.pt.top + (topChild.pt.height || 0) + spacing;
+
+    remainingChildren.forEach(c => {
+        c.pt.top = currentY;
+        currentY += (c.pt.height || 0) + spacing;
+    });
+}
+
 // ---- Align top of children ----
 function alignTop(parentNode) {
     const children = parentNode.content;
@@ -65,9 +139,38 @@ function alignLeftOfChildren(parentNode) {
 // ---- Clone node recursively ----
 function cloneNode(node) {
     const copy = JSON.parse(JSON.stringify(node));
-    copy.id = copy.id + '_copy_' + Math.random().toString(36).slice(2);
-    // Offset slightly to the right
-    if (copy.pt) copy.pt.left = (copy.pt.left || 0) + 10;
+
+    function regenerateIdsRecursively(node) {
+        if (!node || typeof node !== 'object') return;
+
+        // Regenerate this node's id
+        if (node.id) {
+            node.id = node.id + '_copy_' + Math.random().toString(36).slice(2);
+        }
+
+        const content = node.content;
+
+        // Case 1: content is array
+        if (Array.isArray(content)) {
+            content.forEach(child => regenerateIdsRecursively(child));
+        }
+
+        // Case 2: content is single object
+        else if (content && typeof content === 'object') {
+            regenerateIdsRecursively(content);
+        }
+
+        // Case 3: content is string or anything else → ignore
+    }
+
+    regenerateIdsRecursively(copy);
+
+    // Offset slightly so duplicate is visible
+    if (copy.pt) {
+        copy.pt.left = (copy.pt.left || 0) + 10;
+        copy.pt.top = (copy.pt.top || 0) + 10;
+    }
+
     return copy;
 }
 
@@ -85,6 +188,8 @@ export function initToolbar() {
         <button id="removeNode" data-tooltip="Remove node">🗑</button>
         <button id="distributeHoriz" data-tooltip="Distribute children horizontally">⇔</button>
         <button id="distributeEdge" data-tooltip="Distribute children edge to edge">⇔|</button>
+        <button id="distributeVert" data-tooltip="Distribute children vertically">⇕</button>
+        <button id="distributeVertEdge" data-tooltip="Distribute children vertically edge to edge">⇕|</button>
         <button id="alignLeft" data-tooltip="Align left of children">⬅</button>
         <button id="alignTop" data-tooltip="Align top of children">⬆</button>
         <button id="duplicateNode" data-tooltip="Duplicate selected node">⎘</button>
@@ -194,6 +299,21 @@ export function initToolbar() {
         distributeChildrenEdgeToEdge(sel.__node);
         refresh();
     };
+
+    bar.querySelector('#distributeVert').onclick = () => {
+        const sel = getSelection();
+        if (!sel || !Array.isArray(sel.__node.content)) return;
+        distributeChildrenVertically(sel.__node);
+        refresh();
+    };
+
+    bar.querySelector('#distributeVertEdge').onclick = () => {
+        const sel = getSelection();
+        if (!sel || !Array.isArray(sel.__node.content)) return;
+        distributeChildrenVerticallyEdgeToEdge(sel.__node);
+        refresh();
+    };
+
     bar.querySelector('#alignLeft').onclick = () => {
         const sel = getSelection();
         if (!sel || !Array.isArray(sel.__node.content)) return;
