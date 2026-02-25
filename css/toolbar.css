@@ -1,3 +1,6 @@
+/* toolbar.css - cleaned up */
+
+/* ---- Toolbar container ---- */
 #toolbar {
     position: fixed;
     bottom: 0;
@@ -12,7 +15,7 @@
     justify-content: flex-start;
 }
 
-/* Toolbar buttons */
+/* ---- Toolbar buttons ---- */
 #toolbar button {
     width: 32px;
     height: 32px;
@@ -31,7 +34,6 @@
     transition: background 0.15s, color 0.15s;
 }
 
-/* Hover & active states */
 #toolbar button:hover {
     background: #444;
     color: #fff;
@@ -41,22 +43,21 @@
     background: #555;
 }
 
-/* Status text */
+/* ---- Status text ---- */
 #toolbar #status {
     margin-left: 12px;
     opacity: 0.7;
     font-size: 12px;
 }
 
-/* Optional: remove text from buttons (symbols only) */
+/* ---- Hide any text inside buttons (symbols only) ---- */
 #toolbar button span {
     display: none;
 }
 
-/* Tooltip text */
-
+/* ---- Tooltip text ---- */
 #toolbar button[data-tooltip] {
-    position: relative;  /* <-- make ::after position relative to button */
+    position: relative;
 }
 
 #toolbar button[data-tooltip]::after {
@@ -80,6 +81,7 @@
     opacity: 1;
 }
 
+/* ---- Toggle panel button ---- */
 #toolbar #togglePanel {
     margin-left: auto;  /* pushes this button to the far right */
 }
@@ -87,4 +89,25 @@
 #toolbar #togglePanel[data-tooltip]::after {
     right: 0;       /* align tooltip to the right edge of the button */
     left: auto;     /* unset the left alignment */
+}
+
+/* ---- Document select dropdown ---- */
+#toolbar #docSelect {
+    background: #333;
+    color: #eee;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 0 6px;
+    height: 32px;
+    font-size: 13px;
+    cursor: pointer;
+    appearance: none;
+}
+
+#toolbar #docSelect:hover {
+    background: #444;
+}
+
+#toolbar #docSelect:focus {
+    outline: 1px solid #0f0;
 }
