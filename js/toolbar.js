@@ -4,56 +4,37 @@ import { removeNode, ensureContentArray } from './model.js';
 import { MODEL, refresh, DOCS, loadDoc, CURRENT_DOC } from './app.js';
 
 // ---- Distribute children horizontally ----
-function distributeChildrenEdgeToEdge(parentNode) {
+function distributeChildrenHorizontally(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length < 2) return;
-
-    // Sort children left to right
     children.sort((a, b) => (a.pt.left || 0) - (b.pt.left || 0));
-
-    const parentWidth = parentNode.pt?.width || 0;
-
-    // Leftmost and rightmost children
-    const leftChild = children[0];
-    const rightChild = children[children.length - 1];
-
-    // Move leftmost to parent's left
-    leftChild.pt.left = 0;
-
-    // Move rightmost to parent's right
-    rightChild.pt.left = parentWidth - (rightChild.pt.width || 0);
-
-    // Space available for the remaining children
-    const remainingChildren = children.slice(1, -1);
-    const totalRemainingWidth = remainingChildren.reduce((sum, c) => sum + (c.pt.width || 0), 0);
-    const spaceBetween = (rightChild.pt.left - (leftChild.pt.left + (leftChild.pt.width || 0)) - totalRemainingWidth);
-    const spacing = remainingChildren.length > 0 ? spaceBetween / (remainingChildren.length + 1) : 0;
-
-    // Position remaining children
-    let currentX = leftChild.pt.left + (leftChild.pt.width || 0) + spacing;
-    remainingChildren.forEach(c => {
+    const leftMost = children[0].pt.left || 0;
+    const rightMost = children[children.length - 1].pt.left + (children[children.length - 1].pt.width || 0);
+    const totalWidth = rightMost - leftMost;
+    const totalChildrenWidth = children.reduce((sum, c) => sum + (c.pt.width || 0), 0);
+    const spacing = (totalWidth - totalChildrenWidth) / (children.length - 1);
+    let currentX = leftMost;
+    children.forEach(c => {
         c.pt.left = currentX;
         currentX += (c.pt.width || 0) + spacing;
     });
 }
 
-function distributeChildrenHorizontally(parentNode) {
+function distributeChildrenEdgeToEdge(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length < 2) return;
-
-    // Sort children by left
     children.sort((a, b) => (a.pt.left || 0) - (b.pt.left || 0));
-
-    const leftMost = children[0].pt.left || 0;
-    const rightMost = children[children.length - 1].pt.left + (children[children.length - 1].pt.width || 0);
-
-    const totalWidth = rightMost - leftMost;
-    const totalChildrenWidth = children.reduce((sum, c) => sum + (c.pt.width || 0), 0);
-
-    const spacing = (totalWidth - totalChildrenWidth) / (children.length - 1);
-
-    let currentX = leftMost;
-    children.forEach(c => {
+    const parentWidth = parentNode.pt?.width || 0;
+    const leftChild = children[0];
+    const rightChild = children[children.length - 1];
+    leftChild.pt.left = 0;
+    rightChild.pt.left = parentWidth - (rightChild.pt.width || 0);
+    const remainingChildren = children.slice(1, -1);
+    const totalRemainingWidth = remainingChildren.reduce((sum, c) => sum + (c.pt.width || 0), 0);
+    const spaceBetween = (rightChild.pt.left - (leftChild.pt.left + (leftChild.pt.width || 0)) - totalRemainingWidth);
+    const spacing = remainingChildren.length > 0 ? spaceBetween / (remainingChildren.length + 1) : 0;
+    let currentX = leftChild.pt.left + (leftChild.pt.width || 0) + spacing;
+    remainingChildren.forEach(c => {
         c.pt.left = currentX;
         currentX += (c.pt.width || 0) + spacing;
     });
@@ -63,37 +44,43 @@ function distributeChildrenHorizontally(parentNode) {
 function alignTop(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length === 0) return;
-
-    // Use top of leftmost child
-    const leftmostChild = children.reduce((min, c) => {
-        return (c.pt.left || 0) < (min.pt.left || 0) ? c : min;
-    }, children[0]);
-
+    const leftmostChild = children.reduce((min, c) => (c.pt.left || 0) < (min.pt.left || 0) ? c : min, children[0]);
     const top = leftmostChild.pt.top || 0;
     children.forEach(c => c.pt.top = top);
 }
 
-// ---- Add toolbar buttons ----
+// ---- Clone node recursively ----
+function cloneNode(node) {
+    const copy = JSON.parse(JSON.stringify(node));
+    copy.id = copy.id + '_copy_' + Math.random().toString(36).slice(2);
+    // Offset slightly to the right
+    if (copy.pt) copy.pt.left = (copy.pt.left || 0) + 10;
+    return copy;
+}
+
+// ---- Init toolbar ----
 export function initToolbar() {
     const bar = document.getElementById('toolbar');
     if (!bar) return;
 
+    // All buttons in innerHTML
     bar.innerHTML = `
         <select id="docSelect" data-tooltip="Select document"></select>
         <button id="saveDoc" data-tooltip="Save as...">💾</button>
         <button id="deleteDoc" data-tooltip="Delete document">🗑️</button>
         <button id="addChild" data-tooltip="Add child">+</button>
         <button id="removeNode" data-tooltip="Remove node">🗑</button>
-        <span id="status" style="margin-left:10px;opacity:.7"></span>
+        <button id="distributeHoriz" data-tooltip="Distribute children horizontally">⇔</button>
+        <button id="distributeEdge" data-tooltip="Distribute children edge to edge">⇔|</button>
+        <button id="alignTop" data-tooltip="Align top of children">⬆</button>
+        <button id="duplicateNode" data-tooltip="Duplicate selected node">⎘</button>
         <button id="togglePanel" data-tooltip="Toggle Inspector & JSON Output">🛈</button>
+        <span id="status" style="margin-left:10px;opacity:.7"></span>
     `;
 
     const status = bar.querySelector('#status');
     const docSelect = bar.querySelector('#docSelect');
-    const saveBtn = bar.querySelector('#saveDoc');
-    const deleteBtn = bar.querySelector('#deleteDoc');
 
-    // Populate doc dropdown
     function updateDocSelect() {
         docSelect.innerHTML = '';
         for (const name of Object.keys(DOCS)) {
@@ -106,7 +93,7 @@ export function initToolbar() {
     }
     updateDocSelect();
 
-    // ---- Existing doc selection, save, delete, addChild, removeNode logic ----
+    // ---- Doc selection ----
     docSelect.addEventListener('change', () => {
         const name = docSelect.value;
         loadDoc(name);
@@ -120,22 +107,24 @@ export function initToolbar() {
         updateDocSelect();
     });
 
-    saveBtn.addEventListener('click', () => {
-        saveCurrentDoc();
-        updateDocSelect();
-        if (CURRENT_DOC) status.textContent = `Saved: ${CURRENT_DOC}`;
+    // ---- Save ----
+    bar.querySelector('#saveDoc').addEventListener('click', () => {
+        import('./app.js').then(m => {
+            m.saveCurrentDoc();
+            updateDocSelect();
+            if (CURRENT_DOC) status.textContent = `Saved: ${CURRENT_DOC}`;
+        });
     });
 
-    deleteBtn.addEventListener('click', () => {
+    // ---- Delete ----
+    bar.querySelector('#deleteDoc').addEventListener('click', () => {
         if (!CURRENT_DOC) return;
         const confirmDelete = confirm(`Delete document "${CURRENT_DOC}"?`);
         if (!confirmDelete) return;
         delete DOCS[CURRENT_DOC];
         localStorage.setItem('jsonDomDocs', JSON.stringify(DOCS));
-
         const names = Object.keys(DOCS);
         CURRENT_DOC = names[0] || null;
-
         if (CURRENT_DOC) {
             loadDoc(CURRENT_DOC);
             const rootId = MODEL.content?.id;
@@ -154,71 +143,70 @@ export function initToolbar() {
             : `Deleted. No documents left`;
     });
 
+    // ---- Add child ----
     bar.querySelector('#addChild').onclick = () => {
         const sel = getSelection();
         if (!sel) { status.textContent = 'No selection'; return; }
-
         const parent = sel.__node;
         const arr = ensureContentArray(parent);
-
         arr.push({
             id: 'node_' + Math.random().toString(36).slice(2),
             pt: { left: 0, top: 0, width: 60, height: 30 },
             no: { position: 'absolute' },
             content: 'New'
         });
-
         refresh();
     };
 
+    // ---- Remove node ----
     bar.querySelector('#removeNode').onclick = () => {
         const sel = getSelection();
         if (!sel) { status.textContent = 'No selection'; return; }
-
         const success = removeNode(MODEL.content, sel.__node);
         if (!success) { status.textContent = 'Cannot remove this node'; return; }
-
         refresh();
     };
 
-    const togglePanelBtn = bar.querySelector('#togglePanel');
-    togglePanelBtn.addEventListener('click', () => {
-        document.body.classList.toggle('side-panel-hidden');
-    });
-
-    // ---- NEW: Distribute and Align Buttons ----
-    const distributeBtn = document.createElement('button');
-    distributeBtn.dataset.tooltip = "Distribute children horizontally";
-    distributeBtn.textContent = '⇔';
-    distributeBtn.onclick = () => {
+    // ---- Distribute & Align ----
+    bar.querySelector('#distributeHoriz').onclick = () => {
         const sel = getSelection();
         if (!sel || !Array.isArray(sel.__node.content)) return;
         distributeChildrenHorizontally(sel.__node);
         refresh();
     };
-    bar.appendChild(distributeBtn);
-
-    const distributeBtn2 = document.createElement('button');
-    distributeBtn2.dataset.tooltip = "Distribute children edge to edge";
-    distributeBtn2.textContent = '⇔';
-    distributeBtn2.onclick = () => {
+    bar.querySelector('#distributeEdge').onclick = () => {
         const sel = getSelection();
         if (!sel || !Array.isArray(sel.__node.content)) return;
         distributeChildrenEdgeToEdge(sel.__node);
         refresh();
     };
-    bar.appendChild(distributeBtn2);
-
-    const alignTopBtn = document.createElement('button');
-    alignTopBtn.dataset.tooltip = "Align top of children";
-    alignTopBtn.textContent = '⬆';
-    alignTopBtn.onclick = () => {
+    bar.querySelector('#alignTop').onclick = () => {
         const sel = getSelection();
         if (!sel || !Array.isArray(sel.__node.content)) return;
         alignTop(sel.__node);
         refresh();
     };
-    bar.appendChild(alignTopBtn);
+
+    // ---- Duplicate node ----
+    bar.querySelector('#duplicateNode').onclick = () => {
+        const sel = getSelection();
+        if (!sel) { status.textContent = 'No selection'; return; }
+        const parentEl = sel.parentElement;
+        const parentNode = parentEl?.__node || MODEL.content;
+        const arr = ensureContentArray(parentNode);
+        const clone = cloneNode(sel.__node);
+        const index = arr.indexOf(sel.__node);
+        arr.splice(index + 1, 0, clone);
+        refresh();
+        // Select newly duplicated node
+        const clonedEl = Array.from(parentEl.children).find(c => c.__node === clone);
+        if (clonedEl) setSelection(clonedEl);
+    };
+
+    // ---- Toggle panel ----
+    bar.querySelector('#togglePanel').addEventListener('click', () => {
+        document.body.classList.toggle('side-panel-hidden');
+    });
 
     // ---- Live status update ----
     setInterval(() => {
