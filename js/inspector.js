@@ -157,6 +157,7 @@ function renderInspector(el, onUpdate) {
     // ---- ID change ----
     inspector.querySelector('#node-id')?.addEventListener('input', e => {
         node.id = e.target.value;
+        currentEl.id = node.id; // update DOM id
         onUpdate?.(node);
     });
 
@@ -165,7 +166,17 @@ function renderInspector(el, onUpdate) {
         input.addEventListener('input', e => {
             const section = e.target.dataset.section;
             const prop = e.target.dataset.prop;
-            node[section][prop] = getPropertyValue(section, e.target.value);
+            const value = getPropertyValue(section, e.target.value);
+
+            // Update model
+            node[section][prop] = value;
+
+            // Update element style immediately
+            import('./styles.js').then(({ applyStyles }) => {
+                applyStyles(currentEl, node);
+            });
+
+            // Update JSON output if needed
             onUpdate?.(node);
         });
     });
@@ -175,7 +186,14 @@ function renderInspector(el, onUpdate) {
         btn.addEventListener('click', () => {
             const { section, prop } = btn.dataset;
             delete node[section][prop];
-            renderInspector(el, onUpdate);
+
+            // Update element immediately
+            import('./styles.js').then(({ applyStyles }) => {
+                applyStyles(currentEl, node);
+            });
+
+            // Re-render inspector for remaining inputs
+            renderInspector(currentEl, onUpdate);
             onUpdate?.(node);
         });
     });
@@ -183,6 +201,7 @@ function renderInspector(el, onUpdate) {
     // ---- Text content changes ----
     inspector.querySelector('#node-text')?.addEventListener('input', e => {
         node.content = e.target.value;
+        currentEl.innerText = node.content; // update DOM immediately
         onUpdate?.(node);
     });
 }
@@ -191,7 +210,6 @@ function renderInspector(el, onUpdate) {
 export function initInspector(onUpdate, onSelect) {
     clearInspector();
 
-    // Subscribe to multiple selection changes
     onSelectionChange(el => {
         renderInspector(el, onUpdate);
         if (onSelect && el?.__node) onSelect(el.__node);

@@ -139,8 +139,14 @@ window.addEventListener('DOMContentLoaded', () => {
     initToolbar();
 
     initInspector(
-        () => {
-            refresh();
+        (node) => {
+            // Only update JSON output, not the editor
+            const jsonText = JSON.stringify(MODEL, null, 2);
+            const jsonWithSpans = jsonText.replace(
+                /"id":\s*"([^"]+)"/g,
+                (_, id) => `"id": "<span class='json-node' data-id='${id}'>${id}</span>"`
+            );
+            document.getElementById('output').innerHTML = jsonWithSpans;
         },
         scrollJsonToSelection
     );
