@@ -1,10 +1,11 @@
+// inspector.js
 import { onSelectionChange, setSelection } from './selection.js';
 import { MODEL } from './app.js';
 
 const inspector = document.getElementById('inspector');
-
 let currentEl = null;
 
+// ---- Clear inspector UI ----
 function clearInspector() {
     inspector.innerHTML = `
         <div style="opacity:.7">No selection</div>
@@ -14,20 +15,16 @@ function clearInspector() {
     `;
 
     const btn = inspector.querySelector('#select-root');
-
     btn?.addEventListener('click', () => {
         if (!MODEL?.content) return;
-
         const rootId = MODEL.content.id;
         if (!rootId) return;
-
         const rootEl = document.getElementById(rootId);
-        if (rootEl) {
-            setSelection(rootEl);
-        }
+        if (rootEl) setSelection(rootEl);
     });
 }
 
+// ---- Helper functions ----
 function findParent(el) {
     let p = el?.parentElement;
     while (p && !p.__node) p = p.parentElement;
@@ -35,14 +32,9 @@ function findParent(el) {
 }
 
 function findSibling(el, dir) {
-    let sib = dir === 'next'
-        ? el?.nextElementSibling
-        : el?.previousElementSibling;
-
+    let sib = dir === 'next' ? el?.nextElementSibling : el?.previousElementSibling;
     while (sib && !sib.__node) {
-        sib = dir === 'next'
-            ? sib.nextElementSibling
-            : sib.previousElementSibling;
+        sib = dir === 'next' ? sib.nextElementSibling : sib.previousElementSibling;
     }
     return sib;
 }
@@ -52,9 +44,7 @@ function findFirstChild(el) {
 }
 
 function getPropertyValue(section, value) {
-    if (section === 'pt')
-        return Number(value);
-
+    if (section === 'pt') return Number(value);
     if (section === 'no') {
         try {
             const parsed = JSON.parse(value);
@@ -63,10 +53,10 @@ function getPropertyValue(section, value) {
             return value;
         }
     }
-
     return value;
 }
 
+// ---- Render inspector UI for a selected element ----
 function renderInspector(el, onUpdate) {
     currentEl = el;
 
@@ -146,34 +136,31 @@ function renderInspector(el, onUpdate) {
         ` : ''}
     `;
 
-    // Navigation
+    // ---- Navigation buttons ----
     inspector.querySelector('#nav-parent')?.addEventListener('click', () => {
         const p = findParent(currentEl);
         if (p) setSelection(p);
     });
-
     inspector.querySelector('#nav-child')?.addEventListener('click', () => {
         const c = findFirstChild(currentEl);
         if (c) setSelection(c);
     });
-
     inspector.querySelector('#nav-prev')?.addEventListener('click', () => {
         const s = findSibling(currentEl, 'prev');
         if (s) setSelection(s);
     });
-
     inspector.querySelector('#nav-next')?.addEventListener('click', () => {
         const s = findSibling(currentEl, 'next');
         if (s) setSelection(s);
     });
 
-    // ID change
+    // ---- ID change ----
     inspector.querySelector('#node-id')?.addEventListener('input', e => {
         node.id = e.target.value;
         onUpdate?.(node);
     });
 
-    // Property changes
+    // ---- Property input changes ----
     inspector.querySelectorAll('.prop-row input').forEach(input => {
         input.addEventListener('input', e => {
             const section = e.target.dataset.section;
@@ -183,6 +170,7 @@ function renderInspector(el, onUpdate) {
         });
     });
 
+    // ---- Delete property buttons ----
     inspector.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const { section, prop } = btn.dataset;
@@ -192,19 +180,20 @@ function renderInspector(el, onUpdate) {
         });
     });
 
+    // ---- Text content changes ----
     inspector.querySelector('#node-text')?.addEventListener('input', e => {
         node.content = e.target.value;
         onUpdate?.(node);
     });
 }
 
+// ---- Initialize inspector ----
 export function initInspector(onUpdate, onSelect) {
     clearInspector();
 
+    // Subscribe to multiple selection changes
     onSelectionChange(el => {
         renderInspector(el, onUpdate);
-        if (onSelect && el?.__node) {
-            onSelect(el.__node);
-        }
+        if (onSelect && el?.__node) onSelect(el.__node);
     });
 }

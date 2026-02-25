@@ -1,10 +1,10 @@
 // toolbar.js
-import { getSelection, clearSelection, setSelection } from './selection.js';
+import { getSelection, clearSelection, setSelection, onSelectionChange } from './selection.js';
 import { removeNode, ensureContentArray } from './model.js';
 import { MODEL, refresh, DOCS, loadDoc, CURRENT_DOC } from './app.js';
 import { SettingsManager } from './settings.js';
 
-// ---- Distribute children horizontally ----
+// ---- Distribute & Align functions ----
 function distributeChildrenHorizontally(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length < 2) return;
@@ -41,77 +41,42 @@ function distributeChildrenEdgeToEdge(parentNode) {
     });
 }
 
-// ---- Distribute children vertically ----
 function distributeChildrenVertically(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length < 2) return;
-
     children.sort((a, b) => (a.pt.top || 0) - (b.pt.top || 0));
-
     const topMost = children[0].pt.top || 0;
-    const bottomMost =
-        (children[children.length - 1].pt.top || 0) +
-        (children[children.length - 1].pt.height || 0);
-
+    const bottomMost = (children[children.length - 1].pt.top || 0) + (children[children.length - 1].pt.height || 0);
     const totalHeight = bottomMost - topMost;
-
-    const totalChildrenHeight = children.reduce(
-        (sum, c) => sum + (c.pt.height || 0),
-        0
-    );
-
+    const totalChildrenHeight = children.reduce((sum, c) => sum + (c.pt.height || 0), 0);
     const spacing = (totalHeight - totalChildrenHeight) / (children.length - 1);
-
     let currentY = topMost;
-
     children.forEach(c => {
         c.pt.top = currentY;
         currentY += (c.pt.height || 0) + spacing;
     });
 }
 
-// ---- Distribute children vertically edge to edge ----
 function distributeChildrenVerticallyEdgeToEdge(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length < 2) return;
-
     children.sort((a, b) => (a.pt.top || 0) - (b.pt.top || 0));
-
     const parentHeight = parentNode.pt?.height || 0;
-
     const topChild = children[0];
     const bottomChild = children[children.length - 1];
-
     topChild.pt.top = 0;
     bottomChild.pt.top = parentHeight - (bottomChild.pt.height || 0);
-
     const remainingChildren = children.slice(1, -1);
-
-    const totalRemainingHeight = remainingChildren.reduce(
-        (sum, c) => sum + (c.pt.height || 0),
-        0
-    );
-
-    const spaceBetween =
-        bottomChild.pt.top -
-        (topChild.pt.top + (topChild.pt.height || 0)) -
-        totalRemainingHeight;
-
-    const spacing =
-        remainingChildren.length > 0
-            ? spaceBetween / (remainingChildren.length + 1)
-            : 0;
-
-    let currentY =
-        topChild.pt.top + (topChild.pt.height || 0) + spacing;
-
+    const totalRemainingHeight = remainingChildren.reduce((sum, c) => sum + (c.pt.height || 0), 0);
+    const spaceBetween = bottomChild.pt.top - (topChild.pt.top + (topChild.pt.height || 0)) - totalRemainingHeight;
+    const spacing = remainingChildren.length > 0 ? spaceBetween / (remainingChildren.length + 1) : 0;
+    let currentY = topChild.pt.top + (topChild.pt.height || 0) + spacing;
     remainingChildren.forEach(c => {
         c.pt.top = currentY;
         currentY += (c.pt.height || 0) + spacing;
     });
 }
 
-// ---- Align top of children ----
 function alignTop(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length === 0) return;
@@ -120,7 +85,6 @@ function alignTop(parentNode) {
     children.forEach(c => c.pt.top = top);
 }
 
-// ---- Align left of children ----
 function alignLeftOfChildren(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length === 0) return;
@@ -129,26 +93,20 @@ function alignLeftOfChildren(parentNode) {
     children.forEach(c => c.pt.left = left);
 }
 
-// ---- Clone node recursively with regenerated IDs ----
 function cloneNode(node) {
     const copy = JSON.parse(JSON.stringify(node));
-
-    function regenerateIdsRecursively(node) {
-        if (!node || typeof node !== 'object') return;
-        if (node.id) node.id = node.id + '_copy_' + Math.random().toString(36).slice(2);
-
-        const content = node.content;
+    function regenerateIdsRecursively(n) {
+        if (!n || typeof n !== 'object') return;
+        if (n.id) n.id = n.id + '_copy_' + Math.random().toString(36).slice(2);
+        const content = n.content;
         if (Array.isArray(content)) content.forEach(child => regenerateIdsRecursively(child));
         else if (content && typeof content === 'object') regenerateIdsRecursively(content);
     }
-
     regenerateIdsRecursively(copy);
-
     if (copy.pt) {
         copy.pt.left = (copy.pt.left || 0) + 10;
         copy.pt.top = (copy.pt.top || 0) + 10;
     }
-
     return copy;
 }
 
@@ -170,24 +128,20 @@ export function initToolbar() {
         <button id="alignLeft" data-tooltip="Align left of children">⬅</button>
         <button id="alignTop" data-tooltip="Align top of children">⬆</button>
         <button id="duplicateNode" data-tooltip="Duplicate selected node">⎘</button>
-        <button id="togglePanel" data-tooltip="Toggle Inspector & JSON Output">🛈</button>
-        <label style="margin-left:10px;">
+        <label style="margin-left:10px; color: blanchedalmond">
             Zoom sensitivity
             <input type="range" id="zoomSensitivity" min="0.0005" max="0.01" step="0.0005">
         </label>
-        <span id="status" style="margin-left:10px;opacity:.7"></span>
+        <span id="status" style="margin-left:10px;opacity:.7;color: blanchedalmond"></span>
+        <button id="togglePanel" data-tooltip="Toggle Inspector & JSON Output">🛈</button>
     `;
 
     const status = bar.querySelector('#status');
     const docSelect = bar.querySelector('#docSelect');
     const zoomInput = bar.querySelector('#zoomSensitivity');
 
-    // Initialize zoom slider from localStorage
-    // ... inside initToolbar() ...
-
-    // Initialize slider from SettingsManager
+    // ---- Initialize zoom slider ----
     zoomInput.value = SettingsManager.get('zoomSensitivity', 0.002);
-
     zoomInput.addEventListener('input', () => {
         const value = parseFloat(zoomInput.value);
         SettingsManager.set('zoomSensitivity', value);
@@ -327,11 +281,10 @@ export function initToolbar() {
         document.body.classList.toggle('side-panel-hidden');
     });
 
-    // ---- Live status update ----
-    setInterval(() => {
-        const sel = getSelection();
+    // ---- Live status update via selection subscription ----
+    onSelectionChange(sel => {
         status.textContent = sel
             ? `Selected: ${sel.id || '(no id)'}`
             : `Document: ${CURRENT_DOC || '(none)'}`;
-    }, 200);
+    });
 }

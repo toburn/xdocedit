@@ -1,13 +1,14 @@
 // selection.js
 let selectedEl = null;
-let selectionCallback = null;
+const selectionCallbacks = new Set();
 
 export function setSelection(el) {
     if (selectedEl) selectedEl.classList.remove('selected');
     selectedEl = el;
     if (selectedEl) selectedEl.classList.add('selected');
 
-    if (selectionCallback) selectionCallback(selectedEl);
+    // Notify all subscribers
+    selectionCallbacks.forEach(cb => cb(selectedEl));
 }
 
 export function getSelection() {
@@ -18,9 +19,15 @@ export function clearSelection() {
     if (selectedEl) selectedEl.classList.remove('selected');
     selectedEl = null;
 
-    if (selectionCallback) selectionCallback(null);
+    selectionCallbacks.forEach(cb => cb(null));
 }
 
+/**
+ * Subscribe to selection changes.
+ * Returns a function to unsubscribe.
+ */
 export function onSelectionChange(cb) {
-    selectionCallback = cb;
+    selectionCallbacks.add(cb);
+    // Return unsubscribe function
+    return () => selectionCallbacks.delete(cb);
 }
