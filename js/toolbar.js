@@ -49,6 +49,19 @@ function alignTop(parentNode) {
     children.forEach(c => c.pt.top = top);
 }
 
+// ---- Align left of children ----
+function alignLeftOfChildren(parentNode) {
+    const children = parentNode.content;
+    if (!Array.isArray(children) || children.length === 0) return;
+
+    // Use the left of the leftmost child
+    const leftmostChild = children.reduce((min, c) => (c.pt.left || 0) < (min.pt.left || 0) ? c : min, children[0]);
+    const left = leftmostChild.pt.left || 0;
+
+    // Set all children to the same left
+    children.forEach(c => c.pt.left = left);
+}
+
 // ---- Clone node recursively ----
 function cloneNode(node) {
     const copy = JSON.parse(JSON.stringify(node));
@@ -72,6 +85,7 @@ export function initToolbar() {
         <button id="removeNode" data-tooltip="Remove node">🗑</button>
         <button id="distributeHoriz" data-tooltip="Distribute children horizontally">⇔</button>
         <button id="distributeEdge" data-tooltip="Distribute children edge to edge">⇔|</button>
+        <button id="alignLeft" data-tooltip="Align left of children">⬅</button>
         <button id="alignTop" data-tooltip="Align top of children">⬆</button>
         <button id="duplicateNode" data-tooltip="Duplicate selected node">⎘</button>
         <button id="togglePanel" data-tooltip="Toggle Inspector & JSON Output">🛈</button>
@@ -180,6 +194,13 @@ export function initToolbar() {
         distributeChildrenEdgeToEdge(sel.__node);
         refresh();
     };
+    bar.querySelector('#alignLeft').onclick = () => {
+        const sel = getSelection();
+        if (!sel || !Array.isArray(sel.__node.content)) return;
+        alignLeftOfChildren(sel.__node);
+        refresh();
+    };
+
     bar.querySelector('#alignTop').onclick = () => {
         const sel = getSelection();
         if (!sel || !Array.isArray(sel.__node.content)) return;
