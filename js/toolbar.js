@@ -1,7 +1,7 @@
 // toolbar.js
 import { getSelection, clearSelection, setSelection } from './selection.js';
 import { removeNode, ensureContentArray } from './model.js';
-import { MODEL, refresh, DOCS, loadDoc, saveCurrentDoc, CURRENT_DOC } from './app.js';
+import { MODEL, refresh, DOCS, loadDoc, CURRENT_DOC } from './app.js';
 
 export function initToolbar() {
     const bar = document.getElementById('toolbar');
@@ -14,7 +14,7 @@ export function initToolbar() {
     // Toolbar HTML
     bar.innerHTML = `
         <select id="docSelect" data-tooltip="Select document"></select>
-        <button id="saveDoc" data-tooltip="Save document">💾</button>
+        <button id="saveDoc" data-tooltip="Save as...">💾</button>
         <button id="deleteDoc" data-tooltip="Delete document">🗑️</button>
         <button id="addChild" data-tooltip="Add child">+</button>
         <button id="removeNode" data-tooltip="Remove node">🗑</button>
@@ -58,11 +58,24 @@ export function initToolbar() {
         updateDocSelect();
     });
 
-    // ---- Save button ----
+    // ---- Save As button ----
     saveBtn.addEventListener('click', () => {
-        saveCurrentDoc();
+        const name = prompt("Enter document name:", CURRENT_DOC || "");
+        if (!name) return;
+
+        CURRENT_DOC = name;
+        MODEL.aname = name;
+
+        // Ensure default properties exist
+        if (!MODEL.puzzle) MODEL.puzzle = { pt: { left: 0, top: 0 } };
+        if (!MODEL.classList) MODEL.classList = {};
+        if (!MODEL.content) MODEL.content = { id: "root", pt: { left: 0, top: 0, width: 595, height: 842 }, no: {}, content: [] };
+
+        DOCS[CURRENT_DOC] = MODEL;
+        localStorage.setItem('jsonDomDocs', JSON.stringify(DOCS));
+
         updateDocSelect();
-        if (CURRENT_DOC) status.textContent = `Saved: ${CURRENT_DOC}`;
+        status.textContent = `Saved as: ${CURRENT_DOC}`;
     });
 
     // ---- Delete button ----
