@@ -1,6 +1,13 @@
 import { getSelection } from './selection.js';
 import { removeNode, ensureContentArray } from './model.js';
-import { MODEL, refresh, DOCS, loadDoc, saveCurrentDoc, CURRENT_DOC } from './app.js';
+import {
+    MODEL,
+    refresh,
+    DOCS,
+    loadDoc,
+    saveCurrentDoc,
+    CURRENT_DOC
+} from './app.js';
 
 export function initToolbar() {
     const bar = document.getElementById('toolbar');
@@ -10,24 +17,38 @@ export function initToolbar() {
         return;
     }
 
-    // Toolbar HTML
+    // ---- Toolbar HTML ----
     bar.innerHTML = `
-    <select id="docSelect" data-tooltip="Select document"></select>
-    <button id="saveDoc" data-tooltip="Save document">💾</button>
-    <button id="addChild" data-tooltip="Add child">+</button>
-    <button id="removeNode" data-tooltip="Remove node">🗑</button>
-    <span id="status" style="margin-left:10px;opacity:.7"></span>
-    <button id="togglePanel" data-tooltip="Toggle Inspector & JSON Output">🛈</button>
-`;
+        <select id="docSelect" data-tooltip="Select document"></select>
+        <button id="saveDoc" data-tooltip="Save document">💾</button>
+        <button id="deleteDoc" data-tooltip="Delete document">🗑</button>
+        <button id="addChild" data-tooltip="Add child">+</button>
+        <button id="removeNode" data-tooltip="Remove node">✖</button>
+        <span id="status" style="margin-left:10px;opacity:.7"></span>
+        <button id="togglePanel" data-tooltip="Toggle Inspector & JSON Output">🛈</button>
+    `;
 
     const status = bar.querySelector('#status');
     const docSelect = bar.querySelector('#docSelect');
     const saveBtn = bar.querySelector('#saveDoc');
+    const deleteBtn = bar.querySelector('#deleteDoc');
 
-    // ---- Populate doc dropdown ----
+    // ---- Populate dropdown ----
     function updateDocSelect() {
         docSelect.innerHTML = '';
-        for (const name of Object.keys(DOCS)) {
+
+        const names = Object.keys(DOCS);
+
+        if (!names.length) {
+            const opt = document.createElement('option');
+            opt.textContent = '(no documents)';
+            opt.disabled = true;
+            opt.selected = true;
+            docSelect.appendChild(opt);
+            return;
+        }
+
+        for (const name of names) {
             const opt = document.createElement('option');
             opt.value = name;
             opt.textContent = name;
@@ -38,20 +59,49 @@ export function initToolbar() {
 
     updateDocSelect();
 
+    // ---- Select document ----
     docSelect.addEventListener('change', () => {
         const name = docSelect.value;
         loadDoc(name);
         updateDocSelect();
     });
 
-    // ---- Save button ----
+    // ---- Save ----
     saveBtn.addEventListener('click', () => {
         saveCurrentDoc();
         updateDocSelect();
-        if (CURRENT_DOC) status.textContent = `Saved: ${CURRENT_DOC}`;
+        if (CURRENT_DOC)
+            status.textContent = `Saved: ${CURRENT_DOC}`;
     });
 
-    // Add child button
+    // ---- Delete document ----
+    deleteBtn.addEventListener('click', () => {
+        if (!CURRENT_DOC) return;
+
+        const confirmed = confirm(`Delete document "${CURRENT_DOC}"?`);
+        if (!confirmed) return;
+
+        delete DOCS[CURRENT_DOC];
+
+        localStorage.setItem(
+            'jsonDomDocs',
+            JSON.stringify(DOCS)
+        );
+
+        const remaining = Object.keys(DOCS);
+
+        if (remaining.length) {
+            loadDoc(remaining[0]); // open first remaining
+        } else {
+            // no docs left
+            Object.keys(MODEL).forEach(k => delete MODEL[k]);
+        }
+
+        updateDocSelect();
+        refresh();
+    });
+
+    // ---- Add child ----
     bar.querySelector('#addChild').onclick = () => {
         const sel = getSelection();
         if (!sel) {
@@ -72,7 +122,7 @@ export function initToolbar() {
         refresh();
     };
 
-    // Remove selected node
+    // ---- Remove selected node ----
     bar.querySelector('#removeNode').onclick = () => {
         const sel = getSelection();
         if (!sel) {
@@ -89,13 +139,13 @@ export function initToolbar() {
         refresh();
     };
 
-    // Toggle side panel
-    const togglePanelBtn = bar.querySelector('#togglePanel');
-    togglePanelBtn.addEventListener('click', () => {
-        document.body.classList.toggle('side-panel-hidden');
-    });
+    // ---- Toggle inspector panel ----
+    bar.querySelector('#togglePanel')
+        .addEventListener('click', () => {
+            document.body.classList.toggle('side-panel-hidden');
+        });
 
-    // Live status update
+    // ---- Live status ----
     setInterval(() => {
         const sel = getSelection();
         status.textContent = sel
