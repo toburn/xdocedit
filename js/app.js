@@ -120,19 +120,23 @@ function scrollJsonToSelection(node) {
 }
 
 // --- Initialize app ---
+// --- Initialize app ---
 window.addEventListener('DOMContentLoaded', () => {
+
+    // 1️⃣ Load docs FIRST
+    loadFromStorage();
+
+    // 2️⃣ Then init toolbar (so DOCS is already populated)
     initToolbar();
 
     initInspector(
         () => {
-            refresh(); // re-render editor and JSON output
+            refresh();
         },
         scrollJsonToSelection
     );
 
-    loadFromStorage();
-
-    // Auto-load first doc if available
+    // 3️⃣ Auto-load first doc if available
     const firstDoc = Object.keys(DOCS)[0];
     if (firstDoc) loadDoc(firstDoc);
 
@@ -146,6 +150,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Paste
     document.addEventListener('paste', handlePaste);
+
+    // Output toolbar setup remains unchanged...
 
     // Output toolbar
     const outputToolbar = document.createElement('div');
