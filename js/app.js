@@ -2,6 +2,7 @@ import { render } from './renderer.js';
 import { initToolbar } from './toolbar.js';
 import { makeViewportZoomable } from './viewport.js';
 import { initInspector } from './inspector.js';
+import { getSelection, setSelection } from './selection.js';
 
 export let MODEL = {};
 export let DOCS = {};          // All loaded docs keyed by name
@@ -13,18 +14,26 @@ const LOCAL_KEY = 'jsonDomDocs';
 
 // --- Render & persist current model ---
 export function refresh() {
+    const prevSelectedEl = getSelection();       // ✅ use the accessor
+    const prevSelectedId = prevSelectedEl?.id;
+
     editor.innerHTML = '';
     render(MODEL.content || {}, editor);
 
     // Highlight JSON nodes with spans
     const jsonText = JSON.stringify(MODEL, null, 2);
-
     const jsonWithSpans = jsonText.replace(
         /"id":\s*"([^"]+)"/g,
         (_, id) => `"id": "<span class='json-node' data-id='${id}'>${id}</span>"`
     );
-
     output.innerHTML = jsonWithSpans;
+
+    // Restore selection
+    if (prevSelectedId) {
+        const newSelectedEl = document.getElementById(prevSelectedId);
+        if (newSelectedEl) setSelection(newSelectedEl);
+    }
+
     if (CURRENT_DOC) {
         DOCS[CURRENT_DOC] = MODEL;
         localStorage.setItem(LOCAL_KEY, JSON.stringify(DOCS));
