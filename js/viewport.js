@@ -1,3 +1,4 @@
+// viewport.js
 import { SettingsManager } from './settings.js';
 
 export let currentScale = 1;
@@ -19,6 +20,7 @@ export function makeViewportZoomable(editorId, viewportId) {
         console.log('Viewport: zoom sensitivity updated', value);
     });
 
+    // --- Transform updater ---
     function updateTransform() {
         editor.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
     }
@@ -41,18 +43,21 @@ export function makeViewportZoomable(editorId, viewportId) {
         updateTransform();
     });
 
-    // --- Pan ---
+    // --- Pan start ---
     viewport.addEventListener('mousedown', e => {
         const onNode = e.target.closest('.node');
 
+        // Start panning if space pressed or clicked outside a node
         if (window.spacePressed || !onNode) {
             isPanning = true;
             startX = e.clientX - offsetX;
             startY = e.clientY - offsetY;
             viewport.style.cursor = 'grabbing';
+            e.preventDefault(); // prevent text selection
         }
     });
 
+    // --- Pan move ---
     window.addEventListener('mousemove', e => {
         if (!isPanning) return;
         offsetX = e.clientX - startX;
@@ -60,10 +65,38 @@ export function makeViewportZoomable(editorId, viewportId) {
         updateTransform();
     });
 
+    // --- Pan end ---
     window.addEventListener('mouseup', e => {
         if (!isPanning) return;
         isPanning = false;
         viewport.style.cursor = window.spacePressed ? 'grab' : 'default';
+    });
+
+    // --- Space key handling for pan anywhere ---
+    // --- Force cursor on nodes while space is pressed ---
+    function updateNodeCursors() {
+        const nodes = editor.querySelectorAll('.node');
+        nodes.forEach(node => {
+            node.style.cursor = window.spacePressed ? 'grab' : '';
+        });
+    }
+
+    // Call it whenever space is pressed/released
+    window.addEventListener('keydown', e => {
+        if (e.code === 'Space' && !window.spacePressed) {
+            window.spacePressed = true;
+            if (!isPanning) viewport.style.cursor = 'grab';
+            updateNodeCursors();          // 🔹 update nodes
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener('keyup', e => {
+        if (e.code === 'Space') {
+            window.spacePressed = false;
+            if (!isPanning) viewport.style.cursor = 'default';
+            updateNodeCursors();          // 🔹 restore nodes
+        }
     });
 
     updateTransform();

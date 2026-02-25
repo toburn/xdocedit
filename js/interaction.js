@@ -15,7 +15,10 @@ export function enableInteraction(el) {
  */
 function enableSelection(el) {
     el.addEventListener('mousedown', e => {
-        if (window.spacePressed) return; // allow viewport panning
+        if (window.spacePressed) {
+            // Let viewport handle panning
+            return;
+        }
         e.stopPropagation();
         setSelection(el);
     });
@@ -58,7 +61,7 @@ function enableDrag(el) {
             startX = ev.clientX;
             startY = ev.clientY;
 
-            // render in layout px (not scaled px)
+            // render immediately in layout px
             el.style.left = (pt.left * ptToPx) + 'px';
             el.style.top  = (pt.top  * ptToPx) + 'px';
         }
@@ -66,6 +69,7 @@ function enableDrag(el) {
         function onMouseUp() {
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('mouseup', onMouseUp);
+            // Refresh AFTER drag to persist model changes
             refresh();
         }
 

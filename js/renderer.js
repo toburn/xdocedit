@@ -1,6 +1,7 @@
 import { applyStyles } from './styles.js';
 import { enableInteraction } from './interaction.js';
 import { MODEL } from './app.js';
+import { ptToPx } from './units.js';
 
 export function render(node, parentEl) {
     const el = document.createElement('div');
@@ -12,6 +13,10 @@ export function render(node, parentEl) {
     parentEl.appendChild(el);
     applyStyles(el, node, MODEL.classList);
     enableInteraction(el);
+
+    // Apply current pt position immediately (fixes refresh during drag)
+    el.style.left = ((node.pt?.left || 0) * ptToPx) + 'px';
+    el.style.top  = ((node.pt?.top  || 0) * ptToPx) + 'px';
 
     if (node.contenteditable) {
         el.contentEditable = true;
