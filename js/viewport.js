@@ -1,4 +1,4 @@
-// viewport.js
+import { SettingsManager } from './settings.js';
 
 export let currentScale = 1;
 
@@ -7,52 +7,18 @@ export function makeViewportZoomable(editorId, viewportId) {
     const viewport = document.getElementById(viewportId);
 
     let scale = 1;
-    currentScale = scale;
-    let offsetX = 0;
-    let offsetY = 0;
+    let offsetX = 0, offsetY = 0;
+    let isPanning = false, startX, startY;
 
-    let isPanning = false;
-    let startX, startY;
+    // --- Initial zoom sensitivity ---
+    let zoomSensitivity = SettingsManager.get('zoomSensitivity', 0.002);
 
-    let mouseX = 0, mouseY = 0;
-
-    // Track mouse position globally
-    window.addEventListener('mousemove', e => {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-
-        // Update cursor dynamically when not panning
-        if (!isPanning) {
-            viewport.style.cursor = window.spacePressed ? 'grab' : 'default';
-        }
+    // --- Subscribe to changes ---
+    SettingsManager.subscribe('zoomSensitivity', value => {
+        zoomSensitivity = value;
+        console.log('Viewport: zoom sensitivity updated', value);
     });
 
-    // Track spacebar globally
-    window.spacePressed = false;
-    window.addEventListener('keydown', e => {
-        if (e.code === 'Space' && !window.spacePressed) {
-            window.spacePressed = true;
-            e.preventDefault(); // prevent page scroll
-
-            // Force cursor update on element under mouse
-            const el = document.elementFromPoint(mouseX, mouseY);
-            if (el) el.style.cursor = 'grab';
-            viewport.style.cursor = 'grab';
-        }
-    });
-
-    window.addEventListener('keyup', e => {
-        if (e.code === 'Space') {
-            window.spacePressed = false;
-
-            // Restore cursor on element under mouse
-            const el = document.elementFromPoint(mouseX, mouseY);
-            if (el) el.style.cursor = '';
-            viewport.style.cursor = 'default';
-        }
-    });
-
-    // --- Update transform ---
     function updateTransform() {
         editor.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
     }
@@ -60,9 +26,8 @@ export function makeViewportZoomable(editorId, viewportId) {
     // --- Zoom ---
     viewport.addEventListener('wheel', e => {
         e.preventDefault();
-        const zoomFactor = 0.1;
         const delta = e.deltaY < 0 ? 1 : -1;
-        const newScale = Math.min(Math.max(0.1, scale + delta * zoomFactor), 5);
+        const newScale = Math.min(Math.max(0.1, scale + delta * zoomSensitivity), 5);
 
         const rect = viewport.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -101,6 +66,5 @@ export function makeViewportZoomable(editorId, viewportId) {
         viewport.style.cursor = window.spacePressed ? 'grab' : 'default';
     });
 
-    // Initialize
     updateTransform();
 }

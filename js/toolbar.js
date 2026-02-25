@@ -2,6 +2,7 @@
 import { getSelection, clearSelection, setSelection } from './selection.js';
 import { removeNode, ensureContentArray } from './model.js';
 import { MODEL, refresh, DOCS, loadDoc, CURRENT_DOC } from './app.js';
+import { SettingsManager } from './settings.js';
 
 // ---- Distribute children horizontally ----
 function distributeChildrenHorizontally(parentNode) {
@@ -45,7 +46,6 @@ function distributeChildrenVertically(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length < 2) return;
 
-    // Sort by top
     children.sort((a, b) => (a.pt.top || 0) - (b.pt.top || 0));
 
     const topMost = children[0].pt.top || 0;
@@ -70,13 +70,11 @@ function distributeChildrenVertically(parentNode) {
     });
 }
 
-
 // ---- Distribute children vertically edge to edge ----
 function distributeChildrenVerticallyEdgeToEdge(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length < 2) return;
 
-    // Sort by top
     children.sort((a, b) => (a.pt.top || 0) - (b.pt.top || 0));
 
     const parentHeight = parentNode.pt?.height || 0;
@@ -84,7 +82,6 @@ function distributeChildrenVerticallyEdgeToEdge(parentNode) {
     const topChild = children[0];
     const bottomChild = children[children.length - 1];
 
-    // Snap first and last to edges
     topChild.pt.top = 0;
     bottomChild.pt.top = parentHeight - (bottomChild.pt.height || 0);
 
@@ -127,45 +124,26 @@ function alignTop(parentNode) {
 function alignLeftOfChildren(parentNode) {
     const children = parentNode.content;
     if (!Array.isArray(children) || children.length === 0) return;
-
-    // Use the left of the leftmost child
     const leftmostChild = children.reduce((min, c) => (c.pt.left || 0) < (min.pt.left || 0) ? c : min, children[0]);
     const left = leftmostChild.pt.left || 0;
-
-    // Set all children to the same left
     children.forEach(c => c.pt.left = left);
 }
 
-// ---- Clone node recursively ----
+// ---- Clone node recursively with regenerated IDs ----
 function cloneNode(node) {
     const copy = JSON.parse(JSON.stringify(node));
 
     function regenerateIdsRecursively(node) {
         if (!node || typeof node !== 'object') return;
-
-        // Regenerate this node's id
-        if (node.id) {
-            node.id = node.id + '_copy_' + Math.random().toString(36).slice(2);
-        }
+        if (node.id) node.id = node.id + '_copy_' + Math.random().toString(36).slice(2);
 
         const content = node.content;
-
-        // Case 1: content is array
-        if (Array.isArray(content)) {
-            content.forEach(child => regenerateIdsRecursively(child));
-        }
-
-        // Case 2: content is single object
-        else if (content && typeof content === 'object') {
-            regenerateIdsRecursively(content);
-        }
-
-        // Case 3: content is string or anything else → ignore
+        if (Array.isArray(content)) content.forEach(child => regenerateIdsRecursively(child));
+        else if (content && typeof content === 'object') regenerateIdsRecursively(content);
     }
 
     regenerateIdsRecursively(copy);
 
-    // Offset slightly so duplicate is visible
     if (copy.pt) {
         copy.pt.left = (copy.pt.left || 0) + 10;
         copy.pt.top = (copy.pt.top || 0) + 10;
@@ -179,7 +157,6 @@ export function initToolbar() {
     const bar = document.getElementById('toolbar');
     if (!bar) return;
 
-    // All buttons in innerHTML
     bar.innerHTML = `
         <select id="docSelect" data-tooltip="Select document"></select>
         <button id="saveDoc" data-tooltip="Save as...">💾</button>
@@ -194,11 +171,27 @@ export function initToolbar() {
         <button id="alignTop" data-tooltip="Align top of children">⬆</button>
         <button id="duplicateNode" data-tooltip="Duplicate selected node">⎘</button>
         <button id="togglePanel" data-tooltip="Toggle Inspector & JSON Output">🛈</button>
+        <label style="margin-left:10px;">
+            Zoom sensitivity
+            <input type="range" id="zoomSensitivity" min="0.0005" max="0.01" step="0.0005">
+        </label>
         <span id="status" style="margin-left:10px;opacity:.7"></span>
     `;
 
     const status = bar.querySelector('#status');
     const docSelect = bar.querySelector('#docSelect');
+    const zoomInput = bar.querySelector('#zoomSensitivity');
+
+    // Initialize zoom slider from localStorage
+    // ... inside initToolbar() ...
+
+    // Initialize slider from SettingsManager
+    zoomInput.value = SettingsManager.get('zoomSensitivity', 0.002);
+
+    zoomInput.addEventListener('input', () => {
+        const value = parseFloat(zoomInput.value);
+        SettingsManager.set('zoomSensitivity', value);
+    });
 
     function updateDocSelect() {
         docSelect.innerHTML = '';
@@ -220,9 +213,7 @@ export function initToolbar() {
         if (rootId) {
             const rootEl = document.getElementById(rootId);
             if (rootEl) setSelection(rootEl);
-        } else {
-            clearSelection();
-        }
+        } else clearSelection();
         updateDocSelect();
     });
 
@@ -244,18 +235,10 @@ export function initToolbar() {
         localStorage.setItem('jsonDomDocs', JSON.stringify(DOCS));
         const names = Object.keys(DOCS);
         CURRENT_DOC = names[0] || null;
-        if (CURRENT_DOC) {
-            loadDoc(CURRENT_DOC);
-            const rootId = MODEL.content?.id;
-            if (rootId) {
-                const rootEl = document.getElementById(rootId);
-                if (rootEl) setSelection(rootEl);
-            }
-        } else {
-            MODEL = {};
-            refresh();
-            clearSelection();
-        }
+        if (CURRENT_DOC) loadDoc(CURRENT_DOC);
+        else MODEL = {};
+        refresh();
+        clearSelection();
         updateDocSelect();
         status.textContent = CURRENT_DOC
             ? `Deleted. Now showing: ${CURRENT_DOC}`
@@ -299,28 +282,24 @@ export function initToolbar() {
         distributeChildrenEdgeToEdge(sel.__node);
         refresh();
     };
-
     bar.querySelector('#distributeVert').onclick = () => {
         const sel = getSelection();
         if (!sel || !Array.isArray(sel.__node.content)) return;
         distributeChildrenVertically(sel.__node);
         refresh();
     };
-
     bar.querySelector('#distributeVertEdge').onclick = () => {
         const sel = getSelection();
         if (!sel || !Array.isArray(sel.__node.content)) return;
         distributeChildrenVerticallyEdgeToEdge(sel.__node);
         refresh();
     };
-
     bar.querySelector('#alignLeft').onclick = () => {
         const sel = getSelection();
         if (!sel || !Array.isArray(sel.__node.content)) return;
         alignLeftOfChildren(sel.__node);
         refresh();
     };
-
     bar.querySelector('#alignTop').onclick = () => {
         const sel = getSelection();
         if (!sel || !Array.isArray(sel.__node.content)) return;
@@ -339,7 +318,6 @@ export function initToolbar() {
         const index = arr.indexOf(sel.__node);
         arr.splice(index + 1, 0, clone);
         refresh();
-        // Select newly duplicated node
         const clonedEl = Array.from(parentEl.children).find(c => c.__node === clone);
         if (clonedEl) setSelection(clonedEl);
     };
