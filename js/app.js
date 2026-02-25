@@ -140,13 +140,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
     initInspector(
         (node) => {
-            // Only update JSON output, not the editor
+            // Update JSON output
             const jsonText = JSON.stringify(MODEL, null, 2);
             const jsonWithSpans = jsonText.replace(
                 /"id":\s*"([^"]+)"/g,
                 (_, id) => `"id": "<span class='json-node' data-id='${id}'>${id}</span>"`
             );
             document.getElementById('output').innerHTML = jsonWithSpans;
+
+            // Auto-save changes immediately
+            saveCurrentDoc();  // 🔹 this ensures localStorage is updated
         },
         scrollJsonToSelection
     );
