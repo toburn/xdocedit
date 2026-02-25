@@ -3,15 +3,81 @@ import { getSelection, clearSelection, setSelection } from './selection.js';
 import { removeNode, ensureContentArray } from './model.js';
 import { MODEL, refresh, DOCS, loadDoc, CURRENT_DOC } from './app.js';
 
+// ---- Distribute children horizontally ----
+function distributeChildrenEdgeToEdge(parentNode) {
+    const children = parentNode.content;
+    if (!Array.isArray(children) || children.length < 2) return;
+
+    // Sort children left to right
+    children.sort((a, b) => (a.pt.left || 0) - (b.pt.left || 0));
+
+    const parentWidth = parentNode.pt?.width || 0;
+
+    // Leftmost and rightmost children
+    const leftChild = children[0];
+    const rightChild = children[children.length - 1];
+
+    // Move leftmost to parent's left
+    leftChild.pt.left = 0;
+
+    // Move rightmost to parent's right
+    rightChild.pt.left = parentWidth - (rightChild.pt.width || 0);
+
+    // Space available for the remaining children
+    const remainingChildren = children.slice(1, -1);
+    const totalRemainingWidth = remainingChildren.reduce((sum, c) => sum + (c.pt.width || 0), 0);
+    const spaceBetween = (rightChild.pt.left - (leftChild.pt.left + (leftChild.pt.width || 0)) - totalRemainingWidth);
+    const spacing = remainingChildren.length > 0 ? spaceBetween / (remainingChildren.length + 1) : 0;
+
+    // Position remaining children
+    let currentX = leftChild.pt.left + (leftChild.pt.width || 0) + spacing;
+    remainingChildren.forEach(c => {
+        c.pt.left = currentX;
+        currentX += (c.pt.width || 0) + spacing;
+    });
+}
+
+function distributeChildrenHorizontally(parentNode) {
+    const children = parentNode.content;
+    if (!Array.isArray(children) || children.length < 2) return;
+
+    // Sort children by left
+    children.sort((a, b) => (a.pt.left || 0) - (b.pt.left || 0));
+
+    const leftMost = children[0].pt.left || 0;
+    const rightMost = children[children.length - 1].pt.left + (children[children.length - 1].pt.width || 0);
+
+    const totalWidth = rightMost - leftMost;
+    const totalChildrenWidth = children.reduce((sum, c) => sum + (c.pt.width || 0), 0);
+
+    const spacing = (totalWidth - totalChildrenWidth) / (children.length - 1);
+
+    let currentX = leftMost;
+    children.forEach(c => {
+        c.pt.left = currentX;
+        currentX += (c.pt.width || 0) + spacing;
+    });
+}
+
+// ---- Align top of children ----
+function alignTop(parentNode) {
+    const children = parentNode.content;
+    if (!Array.isArray(children) || children.length === 0) return;
+
+    // Use top of leftmost child
+    const leftmostChild = children.reduce((min, c) => {
+        return (c.pt.left || 0) < (min.pt.left || 0) ? c : min;
+    }, children[0]);
+
+    const top = leftmostChild.pt.top || 0;
+    children.forEach(c => c.pt.top = top);
+}
+
+// ---- Add toolbar buttons ----
 export function initToolbar() {
     const bar = document.getElementById('toolbar');
+    if (!bar) return;
 
-    if (!bar) {
-        console.error('Toolbar element not found');
-        return;
-    }
-
-    // Toolbar HTML
     bar.innerHTML = `
         <select id="docSelect" data-tooltip="Select document"></select>
         <button id="saveDoc" data-tooltip="Save as...">💾</button>
@@ -27,7 +93,7 @@ export function initToolbar() {
     const saveBtn = bar.querySelector('#saveDoc');
     const deleteBtn = bar.querySelector('#deleteDoc');
 
-    // ---- Populate doc dropdown ----
+    // Populate doc dropdown
     function updateDocSelect() {
         docSelect.innerHTML = '';
         for (const name of Object.keys(DOCS)) {
@@ -38,15 +104,12 @@ export function initToolbar() {
             docSelect.appendChild(opt);
         }
     }
-
     updateDocSelect();
 
-    // ---- Doc selection ----
+    // ---- Existing doc selection, save, delete, addChild, removeNode logic ----
     docSelect.addEventListener('change', () => {
         const name = docSelect.value;
         loadDoc(name);
-
-        // Auto-select root node for safety
         const rootId = MODEL.content?.id;
         if (rootId) {
             const rootEl = document.getElementById(rootId);
@@ -54,41 +117,22 @@ export function initToolbar() {
         } else {
             clearSelection();
         }
-
         updateDocSelect();
     });
 
-    // ---- Save As button ----
     saveBtn.addEventListener('click', () => {
-        const name = prompt("Enter document name:", CURRENT_DOC || "");
-        if (!name) return;
-
-        CURRENT_DOC = name;
-        MODEL.aname = name;
-
-        // Ensure default properties exist
-        if (!MODEL.puzzle) MODEL.puzzle = { pt: { left: 0, top: 0 } };
-        if (!MODEL.classList) MODEL.classList = {};
-        if (!MODEL.content) MODEL.content = { id: "root", pt: { left: 0, top: 0, width: 595, height: 842 }, no: {}, content: [] };
-
-        DOCS[CURRENT_DOC] = MODEL;
-        localStorage.setItem('jsonDomDocs', JSON.stringify(DOCS));
-
+        saveCurrentDoc();
         updateDocSelect();
-        status.textContent = `Saved as: ${CURRENT_DOC}`;
+        if (CURRENT_DOC) status.textContent = `Saved: ${CURRENT_DOC}`;
     });
 
-    // ---- Delete button ----
     deleteBtn.addEventListener('click', () => {
         if (!CURRENT_DOC) return;
         const confirmDelete = confirm(`Delete document "${CURRENT_DOC}"?`);
         if (!confirmDelete) return;
-
-        // Delete doc
         delete DOCS[CURRENT_DOC];
         localStorage.setItem('jsonDomDocs', JSON.stringify(DOCS));
 
-        // Determine new current doc
         const names = Object.keys(DOCS);
         CURRENT_DOC = names[0] || null;
 
@@ -104,20 +148,15 @@ export function initToolbar() {
             refresh();
             clearSelection();
         }
-
         updateDocSelect();
         status.textContent = CURRENT_DOC
             ? `Deleted. Now showing: ${CURRENT_DOC}`
             : `Deleted. No documents left`;
     });
 
-    // ---- Add child button ----
     bar.querySelector('#addChild').onclick = () => {
         const sel = getSelection();
-        if (!sel) {
-            status.textContent = 'No selection';
-            return;
-        }
+        if (!sel) { status.textContent = 'No selection'; return; }
 
         const parent = sel.__node;
         const arr = ensureContentArray(parent);
@@ -132,28 +171,54 @@ export function initToolbar() {
         refresh();
     };
 
-    // ---- Remove selected node ----
     bar.querySelector('#removeNode').onclick = () => {
         const sel = getSelection();
-        if (!sel) {
-            status.textContent = 'No selection';
-            return;
-        }
+        if (!sel) { status.textContent = 'No selection'; return; }
 
         const success = removeNode(MODEL.content, sel.__node);
-        if (!success) {
-            status.textContent = 'Cannot remove this node';
-            return;
-        }
+        if (!success) { status.textContent = 'Cannot remove this node'; return; }
 
         refresh();
     };
 
-    // ---- Toggle side panel ----
     const togglePanelBtn = bar.querySelector('#togglePanel');
     togglePanelBtn.addEventListener('click', () => {
         document.body.classList.toggle('side-panel-hidden');
     });
+
+    // ---- NEW: Distribute and Align Buttons ----
+    const distributeBtn = document.createElement('button');
+    distributeBtn.dataset.tooltip = "Distribute children horizontally";
+    distributeBtn.textContent = '⇔';
+    distributeBtn.onclick = () => {
+        const sel = getSelection();
+        if (!sel || !Array.isArray(sel.__node.content)) return;
+        distributeChildrenHorizontally(sel.__node);
+        refresh();
+    };
+    bar.appendChild(distributeBtn);
+
+    const distributeBtn2 = document.createElement('button');
+    distributeBtn2.dataset.tooltip = "Distribute children edge to edge";
+    distributeBtn2.textContent = '⇔';
+    distributeBtn2.onclick = () => {
+        const sel = getSelection();
+        if (!sel || !Array.isArray(sel.__node.content)) return;
+        distributeChildrenEdgeToEdge(sel.__node);
+        refresh();
+    };
+    bar.appendChild(distributeBtn2);
+
+    const alignTopBtn = document.createElement('button');
+    alignTopBtn.dataset.tooltip = "Align top of children";
+    alignTopBtn.textContent = '⬆';
+    alignTopBtn.onclick = () => {
+        const sel = getSelection();
+        if (!sel || !Array.isArray(sel.__node.content)) return;
+        alignTop(sel.__node);
+        refresh();
+    };
+    bar.appendChild(alignTopBtn);
 
     // ---- Live status update ----
     setInterval(() => {
