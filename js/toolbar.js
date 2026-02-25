@@ -1,13 +1,7 @@
-import { getSelection } from './selection.js';
+// toolbar.js
+import { getSelection, clearSelection, setSelection } from './selection.js';
 import { removeNode, ensureContentArray } from './model.js';
-import {
-    MODEL,
-    refresh,
-    DOCS,
-    loadDoc,
-    saveCurrentDoc,
-    CURRENT_DOC
-} from './app.js';
+import { MODEL, refresh, DOCS, loadDoc, saveCurrentDoc, CURRENT_DOC } from './app.js';
 
 export function initToolbar() {
     const bar = document.getElementById('toolbar');
@@ -17,13 +11,13 @@ export function initToolbar() {
         return;
     }
 
-    // ---- Toolbar HTML ----
+    // Toolbar HTML
     bar.innerHTML = `
         <select id="docSelect" data-tooltip="Select document"></select>
         <button id="saveDoc" data-tooltip="Save document">💾</button>
-        <button id="deleteDoc" data-tooltip="Delete document">🗑</button>
+        <button id="deleteDoc" data-tooltip="Delete document">🗑️</button>
         <button id="addChild" data-tooltip="Add child">+</button>
-        <button id="removeNode" data-tooltip="Remove node">✖</button>
+        <button id="removeNode" data-tooltip="Remove node">🗑</button>
         <span id="status" style="margin-left:10px;opacity:.7"></span>
         <button id="togglePanel" data-tooltip="Toggle Inspector & JSON Output">🛈</button>
     `;
@@ -33,22 +27,10 @@ export function initToolbar() {
     const saveBtn = bar.querySelector('#saveDoc');
     const deleteBtn = bar.querySelector('#deleteDoc');
 
-    // ---- Populate dropdown ----
+    // ---- Populate doc dropdown ----
     function updateDocSelect() {
         docSelect.innerHTML = '';
-
-        const names = Object.keys(DOCS);
-
-        if (!names.length) {
-            const opt = document.createElement('option');
-            opt.textContent = '(no documents)';
-            opt.disabled = true;
-            opt.selected = true;
-            docSelect.appendChild(opt);
-            return;
-        }
-
-        for (const name of names) {
+        for (const name of Object.keys(DOCS)) {
             const opt = document.createElement('option');
             opt.value = name;
             opt.textContent = name;
@@ -59,49 +41,64 @@ export function initToolbar() {
 
     updateDocSelect();
 
-    // ---- Select document ----
+    // ---- Doc selection ----
     docSelect.addEventListener('change', () => {
         const name = docSelect.value;
         loadDoc(name);
-        updateDocSelect();
-    });
 
-    // ---- Save ----
-    saveBtn.addEventListener('click', () => {
-        saveCurrentDoc();
-        updateDocSelect();
-        if (CURRENT_DOC)
-            status.textContent = `Saved: ${CURRENT_DOC}`;
-    });
-
-    // ---- Delete document ----
-    deleteBtn.addEventListener('click', () => {
-        if (!CURRENT_DOC) return;
-
-        const confirmed = confirm(`Delete document "${CURRENT_DOC}"?`);
-        if (!confirmed) return;
-
-        delete DOCS[CURRENT_DOC];
-
-        localStorage.setItem(
-            'jsonDomDocs',
-            JSON.stringify(DOCS)
-        );
-
-        const remaining = Object.keys(DOCS);
-
-        if (remaining.length) {
-            loadDoc(remaining[0]); // open first remaining
+        // Auto-select root node for safety
+        const rootId = MODEL.content?.id;
+        if (rootId) {
+            const rootEl = document.getElementById(rootId);
+            if (rootEl) setSelection(rootEl);
         } else {
-            // no docs left
-            Object.keys(MODEL).forEach(k => delete MODEL[k]);
+            clearSelection();
         }
 
         updateDocSelect();
-        refresh();
     });
 
-    // ---- Add child ----
+    // ---- Save button ----
+    saveBtn.addEventListener('click', () => {
+        saveCurrentDoc();
+        updateDocSelect();
+        if (CURRENT_DOC) status.textContent = `Saved: ${CURRENT_DOC}`;
+    });
+
+    // ---- Delete button ----
+    deleteBtn.addEventListener('click', () => {
+        if (!CURRENT_DOC) return;
+        const confirmDelete = confirm(`Delete document "${CURRENT_DOC}"?`);
+        if (!confirmDelete) return;
+
+        // Delete doc
+        delete DOCS[CURRENT_DOC];
+        localStorage.setItem('jsonDomDocs', JSON.stringify(DOCS));
+
+        // Determine new current doc
+        const names = Object.keys(DOCS);
+        CURRENT_DOC = names[0] || null;
+
+        if (CURRENT_DOC) {
+            loadDoc(CURRENT_DOC);
+            const rootId = MODEL.content?.id;
+            if (rootId) {
+                const rootEl = document.getElementById(rootId);
+                if (rootEl) setSelection(rootEl);
+            }
+        } else {
+            MODEL = {};
+            refresh();
+            clearSelection();
+        }
+
+        updateDocSelect();
+        status.textContent = CURRENT_DOC
+            ? `Deleted. Now showing: ${CURRENT_DOC}`
+            : `Deleted. No documents left`;
+    });
+
+    // ---- Add child button ----
     bar.querySelector('#addChild').onclick = () => {
         const sel = getSelection();
         if (!sel) {
@@ -139,13 +136,13 @@ export function initToolbar() {
         refresh();
     };
 
-    // ---- Toggle inspector panel ----
-    bar.querySelector('#togglePanel')
-        .addEventListener('click', () => {
-            document.body.classList.toggle('side-panel-hidden');
-        });
+    // ---- Toggle side panel ----
+    const togglePanelBtn = bar.querySelector('#togglePanel');
+    togglePanelBtn.addEventListener('click', () => {
+        document.body.classList.toggle('side-panel-hidden');
+    });
 
-    // ---- Live status ----
+    // ---- Live status update ----
     setInterval(() => {
         const sel = getSelection();
         status.textContent = sel
