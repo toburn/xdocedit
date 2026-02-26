@@ -26,15 +26,11 @@
 /* Optional: differentiate Copy vs Clear */
 .fixed-button.copy {
     color: #0f0; /* greenish for Copy JSON */
-    position: fixed;
-    top: 10px;
-    right: 40px;
+    right: 40px;  /* always offset from right edge */
 }
 
 .fixed-button.clear {
     color: #f55; /* reddish for Clear */
-    position: fixed;
-    top: 10px;
     right: 10px;
 }
 
@@ -42,7 +38,7 @@
 .fixed-button[data-tooltip]::after {
     content: attr(data-tooltip);
     position: absolute;
-    top: 110%;       /* above the button */
+    top: 110%;       /* below the button */
     left: 50%;
     transform: translateX(-50%);
     background: #222;
@@ -56,22 +52,58 @@
     transition: opacity 0.15s;
 }
 
-/* Show tooltip on hover */
 .fixed-button[data-tooltip]:hover::after {
     opacity: 1;
 }
 
-/* Side panel containing inspector + output */
+/* ---- Side panel containing inspector + output ---- */
 #side-panel {
     position: fixed;
     top: 0;
     right: 0;
     height: calc(100% - 48px); /* full height minus toolbar */
-    display: flex;              /* inspector + output side by side */
+    display: flex;             /* inspector + output side by side */
     transition: right 0.2s;
+    z-index: 10;
+    background: #1e1e1e;       /* dark background to match inspector */
 }
 
 /* When side panel is hidden */
 body.side-panel-hidden #side-panel {
     display: none;
+}
+
+/* ---- JSON Output Container ---- */
+#output-container {
+    position: relative;
+    width: 420px;
+    background: #111;
+    color: #0f0;
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden; /* keep toolbar in place */
+}
+
+/* Toolbar inside JSON output container (for Copy / Clear) */
+#output-toolbar {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    gap: 6px;
+    z-index: 100;
+}
+
+/* Scrollable JSON pre */
+#output {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding: 10px;
+    margin: 0;
+    font-family: monospace;
+    line-height: 1.2;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }

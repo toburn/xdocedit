@@ -5,22 +5,22 @@ import { initInspector } from './inspector.js';
 import { getSelection, setSelection } from './selection.js';
 
 export let MODEL = {};
-export let DOCS = {};          // All loaded docs keyed by name
-export let CURRENT_DOC = null; // Currently selected doc name
+export let DOCS = {};
+export let CURRENT_DOC = null;
 
 const editor = document.getElementById('editor');
 const output = document.getElementById('output');
+const outputToolbar = document.getElementById('output-toolbar');
 const LOCAL_KEY = 'jsonDomDocs';
 
-// --- Render & persist current model ---
+// --- Render & persist ---
 export function refresh() {
-    const prevSelectedEl = getSelection();       // ✅ use the accessor
+    const prevSelectedEl = getSelection();
     const prevSelectedId = prevSelectedEl?.id;
 
     editor.innerHTML = '';
     render(MODEL.content || {}, editor);
 
-    // Highlight JSON nodes with spans
     const jsonText = JSON.stringify(MODEL, null, 2);
     const jsonWithSpans = jsonText.replace(
         /"id":\s*"([^"]+)"/g,
@@ -28,7 +28,6 @@ export function refresh() {
     );
     output.innerHTML = jsonWithSpans;
 
-    // Restore selection
     if (prevSelectedId) {
         const newSelectedEl = document.getElementById(prevSelectedId);
         if (newSelectedEl) setSelection(newSelectedEl);
@@ -40,75 +39,56 @@ export function refresh() {
     }
 }
 
-// --- Load all docs from localStorage ---
+// --- Load all docs ---
 function loadFromStorage() {
     const stored = localStorage.getItem(LOCAL_KEY);
     if (stored) {
-        try {
-            DOCS = JSON.parse(stored);
-        } catch (e) {
-            console.error('Invalid JSON in localStorage', e);
-            DOCS = {};
-        }
+        try { DOCS = JSON.parse(stored); }
+        catch(e) { console.error('Invalid JSON', e); DOCS={}; }
     }
 }
 
-// --- Load a specific doc by name ---
+// --- Load a doc ---
 export function loadDoc(name) {
     if (!DOCS[name]) return;
     CURRENT_DOC = name;
-    MODEL = JSON.parse(JSON.stringify(DOCS[name])); // deep copy
+    MODEL = JSON.parse(JSON.stringify(DOCS[name]));
     refresh();
 }
 
-// --- Save currently active doc ---
+// --- Save current doc ---
 export function saveCurrentDoc() {
-    // If no name or missing metadata, prompt
     if (!CURRENT_DOC || !MODEL.aname) {
         let name = prompt("Enter document name:", CURRENT_DOC || "");
-        if (!name) return; // user cancelled
+        if (!name) return;
         CURRENT_DOC = name;
-        MODEL.aname = name; // add metadata
-        if (!MODEL.puzzle) MODEL.puzzle = { pt: { left: 0, top: 0 } }; // default puzzle position
-        if (!MODEL.classList) MODEL.classList = {}; // default classList
-        if (!MODEL.content) MODEL.content = { id: "root", pt: { left: 0, top: 0, width: 595, height: 842 }, no: {}, content: [] }; // default root content
+        MODEL.aname = name;
+        if (!MODEL.puzzle) MODEL.puzzle = { pt: { left:0, top:0 } };
+        if (!MODEL.classList) MODEL.classList = {};
+        if (!MODEL.content) MODEL.content = { id:"root", pt:{left:0,top:0,width:595,height:842}, no:{}, content:[] };
     }
-
     DOCS[CURRENT_DOC] = MODEL;
     localStorage.setItem(LOCAL_KEY, JSON.stringify(DOCS));
 }
 
-// --- Drag & drop JSON file ---
+// --- Drag & Drop ---
 function handleDrop(e) {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = () => {
-        try {
-            MODEL = JSON.parse(reader.result);
-            CURRENT_DOC = null; // reset, so save will ask for name
-            refresh();
-        } catch (err) {
-            alert('Invalid JSON file');
-        }
+        try { MODEL = JSON.parse(reader.result); CURRENT_DOC=null; refresh(); }
+        catch { alert('Invalid JSON file'); }
     };
     reader.readAsText(file);
 }
 
-// --- Paste JSON from clipboard ---
+// --- Paste ---
 function handlePaste(e) {
     const text = e.clipboardData.getData('text');
     if (!text) return;
-
-    try {
-        MODEL = JSON.parse(text);
-        CURRENT_DOC = null; // reset, so save will ask for name
-        refresh();
-    } catch (err) {
-        // ignore non-JSON pastes
-    }
+    try { MODEL = JSON.parse(text); CURRENT_DOC=null; refresh(); } catch{}
 }
 
 // --- Clear model ---
@@ -120,86 +100,58 @@ function clearModel() {
     refresh();
 }
 
-// --- Inspector helper ---
+// --- Scroll JSON to selection ---
 function scrollJsonToSelection(node) {
     if (!node?.id) return;
-
     const el = document.querySelector(`#output .json-node[data-id="${node.id}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 
 // --- Initialize app ---
-// --- Initialize app ---
 window.addEventListener('DOMContentLoaded', () => {
-
-    // 1️⃣ Load docs FIRST
     loadFromStorage();
-
-    // 2️⃣ Then init toolbar (so DOCS is already populated)
     initToolbar();
-
     initInspector(
-        (node) => {
-            // Update JSON output
-            const jsonText = JSON.stringify(MODEL, null, 2);
+        node => {
+            const jsonText = JSON.stringify(MODEL,null,2);
             const jsonWithSpans = jsonText.replace(
                 /"id":\s*"([^"]+)"/g,
                 (_, id) => `"id": "<span class='json-node' data-id='${id}'>${id}</span>"`
             );
-            document.getElementById('output').innerHTML = jsonWithSpans;
-
-            // Auto-save changes immediately
-            saveCurrentDoc();  // 🔹 this ensures localStorage is updated
+            output.innerHTML = jsonWithSpans;
+            saveCurrentDoc();
         },
         scrollJsonToSelection
     );
 
-    // 3️⃣ Auto-load first doc if available
     const firstDoc = Object.keys(DOCS)[0];
     if (firstDoc) loadDoc(firstDoc);
 
     refresh();
+    makeViewportZoomable('editor','editor-viewport');
 
-    makeViewportZoomable('editor', 'editor-viewport');
-
-    // Drag & drop
     document.addEventListener('dragover', e => e.preventDefault());
     document.addEventListener('drop', handleDrop);
-
-    // Paste
     document.addEventListener('paste', handlePaste);
 
-    // Output toolbar setup remains unchanged...
-
-    // Output toolbar
-    const outputToolbar = document.createElement('div');
-    outputToolbar.id = "output-toolbar";
-    output.appendChild(outputToolbar);
-
-    // Clear button
+    // ---- JSON output toolbar buttons ----
     const btnClear = document.createElement('button');
-    btnClear.dataset.tooltip = "Clear";
+    btnClear.dataset.tooltip = "Clear JSON";
+    btnClear.className = 'fixed-button clear';
+    btnClear.textContent = '✖';
     btnClear.onclick = clearModel;
     outputToolbar.appendChild(btnClear);
 
-    // Copy JSON button
     const btnCopy = document.createElement('button');
-    btnCopy.dataset.tooltip = "Copy to clipboard";
-    btnCopy.onclick = async () => {
-        try {
-            await navigator.clipboard.writeText(JSON.stringify(MODEL, null, 2));
-            btnCopy.textContent = 'Copied!';
-            setTimeout(() => btnCopy.textContent = '⎘', 1000);
-        } catch (err) {
-            alert('Failed to copy JSON: ' + err);
-        }
-    };
-
-    btnClear.className = 'fixed-button clear';
-    btnClear.textContent = '✖';
-
+    btnCopy.dataset.tooltip = "Copy JSON";
     btnCopy.className = 'fixed-button copy';
     btnCopy.textContent = '⎘';
-
+    btnCopy.onclick = async () => {
+        try {
+            await navigator.clipboard.writeText(output.textContent);
+            btnCopy.textContent = 'Copied!';
+            setTimeout(()=>btnCopy.textContent='⎘',1000);
+        } catch(err) { alert('Failed to copy JSON: '+err); }
+    };
     outputToolbar.appendChild(btnCopy);
 });
