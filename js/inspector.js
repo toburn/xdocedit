@@ -105,6 +105,11 @@ function renderInspector(el, onUpdate) {
                     </div>
                 `).join('')}
             </div>
+            <div class="add-row">
+                <input type="text" id="new-pt-name" placeholder="Property name">
+                <input type="number" id="new-pt-value" placeholder="Value">
+                <button id="add-pt">+</button>
+            </div>
         </div>
 
         <div class="group">
@@ -123,6 +128,11 @@ function renderInspector(el, onUpdate) {
                                 data-prop="${prop}">✕</button>
                     </div>
                 `).join('')}
+            </div>
+            <div class="add-row">
+                <input type="text" id="new-no-name" placeholder="Property name">
+                <input type="text" id="new-no-value" placeholder="Value">
+                <button id="add-no">+</button>
             </div>
         </div>
 
@@ -176,7 +186,6 @@ function renderInspector(el, onUpdate) {
                 applyStyles(currentEl, node);
             });
 
-            // Update JSON output if needed
             onUpdate?.(node);
         });
     });
@@ -187,15 +196,41 @@ function renderInspector(el, onUpdate) {
             const { section, prop } = btn.dataset;
             delete node[section][prop];
 
-            // Update element immediately
             import('./styles.js').then(({ applyStyles }) => {
                 applyStyles(currentEl, node);
             });
 
-            // Re-render inspector for remaining inputs
             renderInspector(currentEl, onUpdate);
             onUpdate?.(node);
         });
+    });
+
+    // ---- Add new pt property ----
+    inspector.querySelector('#add-pt')?.addEventListener('click', () => {
+        const nameInput = inspector.querySelector('#new-pt-name');
+        const valueInput = inspector.querySelector('#new-pt-value');
+        const n = nameInput.value.trim();
+        const v = Number(valueInput.value);
+        if (!n) return;
+        node.pt[n] = v;
+        nameInput.value = '';
+        valueInput.value = '';
+        renderInspector(currentEl, onUpdate);
+        onUpdate?.(node);
+    });
+
+    // ---- Add new no property ----
+    inspector.querySelector('#add-no')?.addEventListener('click', () => {
+        const nameInput = inspector.querySelector('#new-no-name');
+        const valueInput = inspector.querySelector('#new-no-value');
+        const n = nameInput.value.trim();
+        const v = valueInput.value;
+        if (!n) return;
+        node.no[n] = v;
+        nameInput.value = '';
+        valueInput.value = '';
+        renderInspector(currentEl, onUpdate);
+        onUpdate?.(node);
     });
 
     // ---- Text content changes ----
